@@ -2,6 +2,7 @@ package com.jameslandrum.bluetoothsmart.scanner;
 
 import android.bluetooth.BluetoothDevice;
 import android.os.Build;
+import android.os.Debug;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -63,7 +64,7 @@ public abstract class DeviceScanner {
 	}
 
 	public abstract void startScan(@ScanMode int scanMode);
-	public abstract void stopScan(@ScanMode int scanMode);
+	public abstract void stopScan();
 
 	public void addDeviceType(Class<? extends com.jameslandrum.bluetoothsmart.SmartDevice> type) {
 		try {

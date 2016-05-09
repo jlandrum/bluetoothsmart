@@ -34,4 +34,9 @@ public class Delay extends Action {
 	public int getId() {
 		return mDelay;
 	}
+
+	@Override
+	public String toString() {
+		return "Delay " + mDelay + "ms";
+	}
 }

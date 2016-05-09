@@ -24,4 +24,9 @@ public class Disconnect extends Action {
 	public boolean noDelay() {
 		return true;
 	}
+
+	@Override
+	public String toString() {
+		return "Disconnect";
+	}
 }

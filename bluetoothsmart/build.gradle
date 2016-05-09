@@ -2,7 +2,8 @@ apply plugin: 'com.android.library'
 apply plugin: 'maven'
 
 group = 'com.jameslandrum.libbluetoothsmart'
-version = '0.1'
+//version = 'dev'
+version = '0.3.0'
 
 uploadArchives {
     repositories {

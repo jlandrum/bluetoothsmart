@@ -18,7 +18,7 @@ public class KitKatDeviceScanner extends DeviceScanner {
 	}
 
 	@Override
-	public void stopScan(@ScanMode int scanMode) {
+	public void stopScan() {
 
 	}
 }

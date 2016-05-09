@@ -54,4 +54,9 @@ public class Connect extends Action implements SmartDevice.UpdateListener {
 	public void onDisconnect() {}
 
 	private class FailedToConnectError implements ActionError {}
+
+	@Override
+	public String toString() {
+		return "Connect";
+	}
 }

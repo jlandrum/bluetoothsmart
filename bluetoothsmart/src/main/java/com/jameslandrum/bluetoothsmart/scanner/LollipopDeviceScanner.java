@@ -14,18 +14,23 @@ import android.os.Build;
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class LollipopDeviceScanner extends DeviceScanner {
 	public BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
-	public BluetoothLeScanner mScanner = mAdapter.getBluetoothLeScanner();
+	public BluetoothLeScanner mScanner;
 
 	@Override
 	public void startScan(@ScanMode int scanMode) {
-		ScanSettings.Builder settings = new ScanSettings.Builder();
-		settings.setScanMode(scanMode);
-		mScanner.startScan(null, settings.build(), callback);
+		if (mScanner == null) mScanner = mAdapter.getBluetoothLeScanner();
+		if (mAdapter.isEnabled() && mScanner != null) {
+			ScanSettings.Builder settings = new ScanSettings.Builder();
+			settings.setScanMode(scanMode);
+			mScanner.startScan(null, settings.build(), callback);
+		}
 	}
 
 	@Override
-	public void stopScan(@ScanMode int scanMode) {
-		mScanner.stopScan(callback);
+	public void stopScan() {
+		if (mScanner != null && mAdapter.isEnabled()) {
+			mScanner.stopScan(callback);
+		}
 	}
 
 	private ScanCallback callback = new ScanCallback() {

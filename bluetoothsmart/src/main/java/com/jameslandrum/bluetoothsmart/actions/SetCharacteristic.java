@@ -2,18 +2,19 @@ package com.jameslandrum.bluetoothsmart.actions;
 
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
+import android.bluetooth.BluetoothGattDescriptor;
 
 import com.jameslandrum.bluetoothsmart.Characteristic;
 import com.jameslandrum.bluetoothsmart.SmartDevice;
 
-public class SetCharacteristic extends Action implements SmartDevice.GattListener {
+public class SetCharacteristic extends CharacteristicAction implements SmartDevice.GattListener {
 	private Characteristic mCharacteristic;
 	private byte[] mData;
 	private final Object mHolder = new Object();
 	private ActionError mError;
 
-	public SetCharacteristic(Characteristic characteristic, byte[] data, int id, int group) {
-		super(id, group);
+	public SetCharacteristic(Characteristic characteristic, byte[] data) {
+		super(characteristic);
 		mCharacteristic = characteristic;
 		mData = data;
 	}
@@ -25,23 +26,8 @@ public class SetCharacteristic extends Action implements SmartDevice.GattListene
 
 	@Override
 	public ActionError execute(SmartDevice smartDevice) {
-		super.execute(smartDevice);
-		if (smartDevice.getGatt() == null || !smartDevice.isConnected()) {
-			return new SmartDevice.NotConnectedError();
-		}
-
-		BluetoothGatt mGatt = smartDevice.getGatt();
-
-		if (!mCharacteristic.ready()) {
-			try {
-				mCharacteristic.setCharacteristic(
-						mGatt.getService(mCharacteristic.getServiceId())
-								.getCharacteristic(mCharacteristic.getCharacteristicId()));
-			} catch (Exception e) {
-				e.printStackTrace();
-				return new Characteristic.CharacteristicNotFoundError();
-			}
-		}
+		mError = super.execute(smartDevice);
+		if (mError != null) return mError;
 
 		BluetoothGattCharacteristic characteristic = mCharacteristic.getCharacteristic();
 		characteristic.setValue(mData);
@@ -67,11 +53,8 @@ public class SetCharacteristic extends Action implements SmartDevice.GattListene
 			mHolder.notify();
 		}
 	}
-
-	@Override
-	public void onCharacteristicRead(BluetoothGattCharacteristic characteristic, int status) {
-
-	}
-
+	/* Unused */
+	@Override public void onCharacteristicRead(BluetoothGattCharacteristic characteristic, int status) {}
+	@Override public void onDescriptorWrite(BluetoothGattDescriptor descriptor, int status) {}
 	private class CharacteristicWriteError implements ActionError {}
 }

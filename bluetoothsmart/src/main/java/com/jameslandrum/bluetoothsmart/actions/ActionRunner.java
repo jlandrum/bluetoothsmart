@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 public class ActionRunner extends Thread {
     private int mInterval;
     private ConcurrentLinkedDeque<Action> mActions = new ConcurrentLinkedDeque<>();
-    private ArrayList<RunnerStateListener> mListeners = new ArrayList<>();
+    private ArrayList<ErrorHandler> mListeners = new ArrayList<>();
     private SmartDevice mDevice;
     private boolean mContinueOnComplete;
     private long mLastTrigger;
@@ -23,7 +23,6 @@ public class ActionRunner extends Thread {
     private boolean mWaitAutoTerm;
     private final Object mHolder = new Object();
     private int mMaxActions = 10;
-    private boolean mDebug = true;
 
     /**
      * Creates a thread that will execute actions on a timely manner.
@@ -39,6 +38,9 @@ public class ActionRunner extends Thread {
         start();
     }
 
+	/**
+     * Starts the ActionRunner process.
+     */
     @Override
     public void run() {
         super.run();
@@ -56,12 +58,14 @@ public class ActionRunner extends Thread {
             Log.d("ActionRunner", "ActionRunner is executing action: " + a.toString());
             mError = a.execute(mDevice);
             if (mError != null) {
-                for (RunnerStateListener listener : mListeners) {
-                    listener.onPaused(mError);
-                }
                 Log.d("ActionRunner", "ActionRunner encountered an error and will pause.");
-                if (mDebug) {
-                    Log.d("ActionRunner", "ActionRunner will now clear the action queue and restart.");
+                boolean wasHandled = false;
+                for (ErrorHandler listener : mListeners) {
+                    wasHandled = listener.onError(mError);
+                    if (wasHandled) break;
+                }
+                if (!wasHandled) {
+                    Log.d("ActionRunner", "ActionRunner failed to resolve error. Will now clear the action queue and restart.");
                     mActions.clear();
                     continue;
                 }
@@ -112,12 +116,20 @@ public class ActionRunner extends Thread {
         return this;
     }
 
+	/**
+     * Reveals the next action without removing it from the stack.
+     * @return
+     */
     public Action peekAction() {
         return mActions.peekFirst();
     }
 
-    public interface RunnerStateListener {
-        void onPaused(Action.ActionError error);
+    public void addErrorHandler(ErrorHandler errorHandler) {
+        mListeners.add(errorHandler);
+    }
+
+    public void removeErrorHandler(ErrorHandler errorHandler) {
+        mListeners.remove(errorHandler);
     }
 
     private void pauseThread() {
@@ -145,4 +157,12 @@ public class ActionRunner extends Thread {
     private synchronized void waitForInterrupt() {
         try { synchronized (mHolder) { mHolder.wait(); } } catch (InterruptedException ignored) { }
     }
+
+    /**
+     * Error handler
+     */
+    public interface ErrorHandler {
+        boolean onError(Action.ActionError error);
+    }
+
 }
