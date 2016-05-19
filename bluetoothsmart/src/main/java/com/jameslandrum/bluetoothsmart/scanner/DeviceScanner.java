@@ -2,7 +2,6 @@ package com.jameslandrum.bluetoothsmart.scanner;
 
 import android.bluetooth.BluetoothDevice;
 import android.os.Build;
-import android.os.Debug;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -21,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -29,6 +29,27 @@ import java.util.List;
 public abstract class DeviceScanner {
 	private static final byte[] APPLE_PREFIX =
 			new byte[]{0x4C, 0x00};
+	private static HashSet<BluetoothDevice> mConnectedDevices = new HashSet<>();
+
+	public static void addConnectedDevice(BluetoothDevice mDevice) {
+		mConnectedDevices.add(mDevice);
+		getInstance().stopScan();
+		Log.d("DeviceScanner", "Scanner Stopped due to Device Connect ("+mConnectedDevices.size()+" connections)");
+	}
+
+	public static void removeConnectedDevice(BluetoothDevice mDevice) {
+		mConnectedDevices.remove(mDevice);
+		if (mConnectedDevices.size() == 0 && mScanMode != -2) {
+			getInstance().startScan(mScanMode);
+			Log.d("DeviceScanner", "Scanner Stopped due to All Device Disconnected");
+		} else {
+			Log.d("DeviceScanner", "Scanner Still Stopped due to Device Disconnect ("+mConnectedDevices.size()+" connections)");
+		}
+	}
+
+	public static int getConnectedDevices() {
+		return mConnectedDevices.size();
+	}
 
 	@IntDef({SCAN_MODE_LOW_LATENCY, SCAN_MODE_LOW_POWER, SCAN_MODE_NORMAL, SCAN_MODE_PASSIVE})
 	@Retention(RetentionPolicy.SOURCE)
@@ -38,6 +59,7 @@ public abstract class DeviceScanner {
 	public static final int SCAN_MODE_NORMAL =      1;
 	public static final int SCAN_MODE_LOW_LATENCY = 2;
 
+	protected static int mScanMode;
 	private static DeviceScanner mInstance;
 	private static boolean mAllowUnknowns = false;
 	protected static final ArrayList<DeviceScannerListener> mListeners = new ArrayList<>();

@@ -50,7 +50,6 @@ public class Characteristic {
 	public void setCharacteristicValue(byte[] value, boolean notify) {
 		mCharacteristic.setValue(value);
 		if (notify) {
-			Log.e("NOTICE - SETCHARVAL",toString());
 			for (CharacteristicChangeListener listener : mListeners) {
 				listener.onCharacteristicChanged(this);
 			}

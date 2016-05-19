@@ -6,24 +6,14 @@ import android.support.annotation.Nullable;
 import com.jameslandrum.bluetoothsmart.SmartDevice;
 
 public class Action {
-	private int mId;
-	private int mGroup;
+	protected SmartDevice mDevice;
+	private boolean mRepeating;
 
-	public Action() {
-		this(-1);
-	}
-
-	public Action(int id) {
-		this(id, -1);
-	}
-
-	public Action(int id, int group) {
-		mGroup = group;
-		mId = id;
-	}
+	public Action() {}
 
 	@CallSuper @Nullable
-	public Action.ActionError execute(SmartDevice gatt) {
+	public Action.ActionError execute(SmartDevice device) {
+		mDevice = device;
 		return null;
 	}
 
@@ -31,11 +21,15 @@ public class Action {
 	public void refresh() {
 	}
 
-	public int getId() {
-		return mId;
-	}
-	public int getGroup() { return mGroup; }
 	public boolean noDelay() { return false; }
 
 	public interface ActionError {}
+
+	protected void setRepeating(boolean doRepeat) {
+		mRepeating = doRepeat;
+	}
+
+	public boolean isRepeating() {
+		return mRepeating;
+	}
 }

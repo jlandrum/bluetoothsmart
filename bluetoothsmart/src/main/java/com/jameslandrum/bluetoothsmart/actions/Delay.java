@@ -10,8 +10,7 @@ import com.jameslandrum.bluetoothsmart.SmartDevice;
 public class Delay extends Action {
 	private int mDelay;
 
-	public Delay(int delay, int id, int group) {
-		super(id, group);
+	public Delay(int delay) {
 		mDelay = delay;
 	}
 
@@ -28,11 +27,6 @@ public class Delay extends Action {
 	@Override
 	public boolean noDelay() {
 		return true;
-	}
-
-	@Override
-	public int getId() {
-		return mDelay;
 	}
 
 	@Override

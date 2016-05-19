@@ -63,6 +63,12 @@ public class RegisterCharacteristic extends CharacteristicAction implements Smar
 		}
 	}
 
+	@Override
+	public String toString() {
+		return "Registering to Characteristic " + mCharacteristic.getCharacteristicLabel();
+	}
+
+
 	/* unused */
 	@Override public void onCharacteristicWrite(BluetoothGattCharacteristic characteristic, int status) {}
 	@Override public void onCharacteristicRead(BluetoothGattCharacteristic characteristic, int status) {}

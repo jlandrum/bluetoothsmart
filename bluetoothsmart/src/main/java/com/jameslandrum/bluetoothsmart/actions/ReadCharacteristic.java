@@ -43,6 +43,11 @@ public class ReadCharacteristic extends CharacteristicAction implements SmartDev
 		mHolder.notify();
 	}
 
+	@Override
+	public String toString() {
+		return "Reading Characteristic " + mCharacteristic.getCharacteristicLabel();
+	}
+
 	/* Unused */
 	@Override public void onDescriptorWrite(BluetoothGattDescriptor descriptor, int status) {}
 	@Override public void onCharacteristicWrite(BluetoothGattCharacteristic characteristic, int status) {}

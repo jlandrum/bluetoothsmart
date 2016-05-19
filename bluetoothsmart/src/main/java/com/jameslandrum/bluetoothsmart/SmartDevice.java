@@ -1,11 +1,13 @@
 package com.jameslandrum.bluetoothsmart;
 
 import android.annotation.TargetApi;
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.os.Build;
 import android.os.Debug;
@@ -19,6 +21,7 @@ import com.jameslandrum.bluetoothsmart.annotations.AdEvaluator;
 import com.jameslandrum.bluetoothsmart.annotations.CharDef;
 import com.jameslandrum.bluetoothsmart.annotations.SmartDeviceDef;
 import com.jameslandrum.bluetoothsmart.processors.adfield.BaseAdEvaluator;
+import com.jameslandrum.bluetoothsmart.scanner.DeviceScanner;
 import com.jameslandrum.bluetoothsmart.throwable.InvalidStateException;
 
 import java.lang.annotation.Annotation;
@@ -38,6 +41,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	protected final BluetoothDevice mDevice;
 	protected BluetoothGatt mGatt;
 	private boolean mConnected;
+	private boolean mConnecting;
 	private String mName;
 	private long mLastAd;
 	private HashMap<Field, BaseAdEvaluator<Boolean>> mFieldProcessors = new HashMap<>();
@@ -66,8 +70,9 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 				Annotation a = f.getAnnotation(CharDef.class);
 				if (a!=null) {
 					CharDef charDef = (CharDef) a;
-					Log.e("OK","CHAR " + charDef.service());
-					f.set(this,getCharacteristic(charDef.service(), charDef.id()));
+					Characteristic chars = getCharacteristic(charDef.service(), charDef.id());
+					chars.setCharacteristicLabel(((CharDef) a).label());
+					f.set(this,chars);
 				}
 			}
 		} catch (Exception e) {
@@ -126,14 +131,15 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	}
 
 
-	public void connect() {
+	public void connect(boolean mAutoConnect) {
 		if (mGatt != null) {
 			if (!mConnected) mGatt.connect();
 		} else if (mAppContext != null) {
-			mGatt = mDevice.connectGatt(mAppContext, true, this);
+			mGatt = mDevice.connectGatt(mAppContext, mAutoConnect, this);
 		} else {
 			throw new InvalidStateException("Must call prepareActionRunner before calling connect.");
 		}
+		mConnecting = true;
 	}
 
 	public void disconnect() {
@@ -147,16 +153,21 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		return mConnected;
 	}
 
-	public boolean isVisible() { return System.currentTimeMillis() - mLastAd < mDeclaration.adFrequency(); }
+	public boolean isConnectedOrConnecting() {
+		return mConnecting || mConnected;
+	}
+
+	public boolean isVisible() { return mConnected || mConnecting || System.currentTimeMillis() - mLastAd < (mDeclaration.adFrequency() * 8); }
 
 	public String getName() {
 		return mName;
 	}
 
-	public void bond() {
+	public boolean bond() {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && mDevice.getBondState() != BluetoothDevice.BOND_BONDED) {
-			mDevice.createBond();
+			return mDevice.createBond();
 		}
+		return false;
 	}
 
 	public String getId() {
@@ -177,7 +188,15 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 			} else {
 				onConnect();
 			}
+			DeviceScanner.addConnectedDevice(mDevice);
 		}
+		if (newState == BluetoothGatt.STATE_DISCONNECTED) {
+			DeviceScanner.removeConnectedDevice(mDevice);
+
+			mGatt.close();
+			mGatt = null;
+		}
+		mConnecting = false;
 		Log.i("BluetoothGatt", "Device " + getName() + " is " + (mConnected?"":"not ") + "connected. (" + status + "," +newState + ")");
 	}
 
@@ -272,6 +291,14 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 
 	public ActionRunner getActionRunner() {
 		return mActionRunner;
+	}
+
+	public boolean isBonded() {
+		return mDevice.getBondState() == BluetoothDevice.BOND_BONDED;
+	}
+
+	public BluetoothDevice getDevice() {
+		return mDevice;
 	}
 
 	public interface UpdateListener<T> {

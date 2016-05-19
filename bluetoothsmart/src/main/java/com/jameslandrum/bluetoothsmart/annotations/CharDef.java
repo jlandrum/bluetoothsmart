@@ -12,4 +12,5 @@ import java.lang.annotation.Target;
 public @interface CharDef {
     String service();
     String id();
+    String label() default "Unknown";
 }

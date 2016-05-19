@@ -6,6 +6,9 @@ import android.bluetooth.BluetoothGattDescriptor;
 
 import com.jameslandrum.bluetoothsmart.Characteristic;
 import com.jameslandrum.bluetoothsmart.SmartDevice;
+import com.jameslandrum.bluetoothsmart.actions.errors.CharacteristicWriteError;
+
+import org.apache.commons.codec.binary.Hex;
 
 public class SetCharacteristic extends CharacteristicAction implements SmartDevice.GattListener {
 	private Characteristic mCharacteristic;
@@ -34,7 +37,9 @@ public class SetCharacteristic extends CharacteristicAction implements SmartDevi
 
 		smartDevice.addGattListener(this);
 		mGatt.writeCharacteristic(characteristic);
-		try { synchronized (mHolder) { mHolder.wait(3000); } } catch (InterruptedException e) { e.printStackTrace(); }
+		try { synchronized (mHolder) { mHolder.wait(300); } } catch (InterruptedException e) {
+			mError = new CharacteristicWriteError();
+		}
 		smartDevice.removeGattListener(this);
 
 		return mError;
@@ -53,8 +58,18 @@ public class SetCharacteristic extends CharacteristicAction implements SmartDevi
 			mHolder.notify();
 		}
 	}
+
+	public void enableRepeat(Boolean enable) {
+		setRepeating(enable);
+	}
+
+	@Override
+	public String toString() {
+		return "Setting Characteristic " + mCharacteristic.getCharacteristicLabel() + " to " + new String(Hex.encodeHex(mData));
+	}
+
 	/* Unused */
 	@Override public void onCharacteristicRead(BluetoothGattCharacteristic characteristic, int status) {}
 	@Override public void onDescriptorWrite(BluetoothGattDescriptor descriptor, int status) {}
-	private class CharacteristicWriteError implements ActionError {}
+
 }

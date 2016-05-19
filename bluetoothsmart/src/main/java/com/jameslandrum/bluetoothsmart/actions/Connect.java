@@ -3,6 +3,7 @@ package com.jameslandrum.bluetoothsmart.actions;
 import android.support.annotation.Nullable;
 
 import com.jameslandrum.bluetoothsmart.SmartDevice;
+import com.jameslandrum.bluetoothsmart.scanner.DeviceScanner;
 
 /**
  * Disconnects from the existing connection explicitly.
@@ -10,6 +11,7 @@ import com.jameslandrum.bluetoothsmart.SmartDevice;
 public class Connect extends Action implements SmartDevice.UpdateListener {
 	private final Object mHolder = new Object();
 	public static final Connect CONNECT = new Connect();
+	private ActionError mError;
 
 	public Connect() {
 		super();
@@ -21,18 +23,20 @@ public class Connect extends Action implements SmartDevice.UpdateListener {
 		super.execute(smartDevice);
 		if (smartDevice.isConnected()) return null;
 
-		smartDevice.connect();
+		DeviceScanner.addConnectedDevice(smartDevice.getDevice());
+		mError = new FailedToConnectError();
+
+		smartDevice.connect(false);
 		smartDevice.addOnUpdateListener(this);
 		try {
 			synchronized (mHolder) {
-				mHolder.wait(30000);
+				mHolder.wait(15000);
 			}
 		} catch (InterruptedException e) {
 			smartDevice.disconnect();
-			return new FailedToConnectError();
 		}
 
-		return null;
+		return mError;
 	}
 
 	@Override
@@ -45,6 +49,7 @@ public class Connect extends Action implements SmartDevice.UpdateListener {
 
 	@Override
 	public void onConnect() {
+		mError = null;
 		synchronized (mHolder) {
 			mHolder.notify();
 		}
