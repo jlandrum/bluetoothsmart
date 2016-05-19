@@ -1,8 +1,6 @@
 # BluetoothSmart
 BluetoothSmart is a library that allows a more objective approach to communicating with Bluetooth Smart devices.
 
-Currently, this project is configured to push to a local Maven repository configured at /Library/Maven but can also be included as a module project instead.
-
 # Use
 In order to begin, a device must be created that extends the SmartDevice object:
 ```java
