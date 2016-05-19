@@ -1,16 +1,4 @@
 apply plugin: 'com.android.library'
-apply plugin: 'maven'
-
-group = 'com.jameslandrum.libbluetoothsmart'
-version = '0.3.1'
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            repository(url: "file:///Library/Maven/")
-        }
-    }
-}
 
 android {
     compileSdkVersion 23
