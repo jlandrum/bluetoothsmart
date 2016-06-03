@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 
 public class ReadCharacteristic extends CharacteristicAction implements SmartDevice.GattListener {
 	private Characteristic mCharacteristic;
-	private ActionError mHolder;
+	private final Object mHolder = new Object();
 	private ActionError mError;
 	private HashSet<OnReadCharacteristic> mListeners = new HashSet<>();
 
@@ -43,7 +43,7 @@ public class ReadCharacteristic extends CharacteristicAction implements SmartDev
 	@Override
 	public void onCharacteristicRead(BluetoothGattCharacteristic characteristic, int status) {
 		if (status != BluetoothGatt.GATT_FAILURE) {
-			mHolder = new CharacteristicReadError();
+			mError = new CharacteristicReadError();
 		} else {
 			for (OnReadCharacteristic r : mListeners) {
 				r.onCharacteristicRead(mCharacteristic);
