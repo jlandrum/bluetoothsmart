@@ -7,10 +7,15 @@ import android.bluetooth.BluetoothGattDescriptor;
 import com.jameslandrum.bluetoothsmart.Characteristic;
 import com.jameslandrum.bluetoothsmart.SmartDevice;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.concurrent.ConcurrentLinkedDeque;
+
 public class ReadCharacteristic extends CharacteristicAction implements SmartDevice.GattListener {
 	private Characteristic mCharacteristic;
 	private ActionError mHolder;
 	private ActionError mError;
+	private HashSet<OnReadCharacteristic> mListeners = new HashSet<>();
 
 	public ReadCharacteristic(Characteristic characteristic) {
 		super(characteristic);
@@ -39,6 +44,10 @@ public class ReadCharacteristic extends CharacteristicAction implements SmartDev
 	public void onCharacteristicRead(BluetoothGattCharacteristic characteristic, int status) {
 		if (status != BluetoothGatt.GATT_FAILURE) {
 			mHolder = new CharacteristicReadError();
+		} else {
+			for (OnReadCharacteristic r : mListeners) {
+				r.onCharacteristicRead(mCharacteristic);
+			}
 		}
 		mHolder.notify();
 	}
@@ -46,6 +55,18 @@ public class ReadCharacteristic extends CharacteristicAction implements SmartDev
 	@Override
 	public String toString() {
 		return "Reading Characteristic " + mCharacteristic.getCharacteristicLabel();
+	}
+
+	public void addChangeListener(OnReadCharacteristic listener) {
+		mListeners.add(listener);
+	}
+
+	public void removeChangeListener(OnReadCharacteristic listener) {
+		mListeners.remove(listener);
+	}
+
+	public interface OnReadCharacteristic {
+		void onCharacteristicRead(Characteristic c);
 	}
 
 	/* Unused */
