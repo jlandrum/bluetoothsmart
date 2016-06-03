@@ -29,7 +29,7 @@ public class ReadCharacteristic extends CharacteristicAction implements SmartDev
 
 		smartDevice.addGattListener(this);
 		mGatt.readCharacteristic(mCharacteristic.getCharacteristic());
-		try { mHolder.wait(); } catch (InterruptedException e) { e.printStackTrace(); }
+		try { synchronized (mHolder) { mHolder.wait(300); } } catch (InterruptedException e) { e.printStackTrace(); }
 		smartDevice.removeGattListener(this);
 
 		return mError;
