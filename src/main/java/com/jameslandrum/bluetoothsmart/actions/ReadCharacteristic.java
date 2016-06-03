@@ -49,7 +49,9 @@ public class ReadCharacteristic extends CharacteristicAction implements SmartDev
 				r.onCharacteristicRead(mCharacteristic);
 			}
 		}
-		mHolder.notify();
+		synchronized (mHolder) {
+			mHolder.notify();
+		}
 	}
 
 	@Override
