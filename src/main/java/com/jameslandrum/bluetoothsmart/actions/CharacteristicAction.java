@@ -31,6 +31,7 @@ public class CharacteristicAction extends Action {
 			if (!smartDevice.updateCharacteristic(mCharacteristic))
 			return new Characteristic.CharacteristicNotFoundError();
 		}
+
 		return null;
 	}
 

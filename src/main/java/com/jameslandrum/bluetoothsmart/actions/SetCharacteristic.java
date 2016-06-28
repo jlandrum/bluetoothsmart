@@ -42,6 +42,9 @@ public class SetCharacteristic extends CharacteristicAction implements SmartDevi
 		}
 		smartDevice.removeGattListener(this);
 
+		if (mCompleteListener != null)
+			mCompleteListener.onActionCompleted(this, mError!=null);
+
 		return mError;
 	}
 
