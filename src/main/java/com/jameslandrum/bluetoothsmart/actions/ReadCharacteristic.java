@@ -42,7 +42,7 @@ public class ReadCharacteristic extends CharacteristicAction implements SmartDev
 
 	@Override
 	public void onCharacteristicRead(BluetoothGattCharacteristic characteristic, int status) {
-		if (status != BluetoothGatt.GATT_FAILURE) {
+		if (status == BluetoothGatt.GATT_FAILURE) {
 			mError = new CharacteristicReadError();
 		} else {
 			for (OnReadCharacteristic r : mListeners) {

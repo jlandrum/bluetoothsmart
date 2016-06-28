@@ -68,6 +68,11 @@ public abstract class DeviceScanner {
 	protected static final HashMap<Method,Class<? extends com.jameslandrum.bluetoothsmart.SmartDevice>> mDeviceIdentifiers = new HashMap<>();
 	private DevicePersistentStorage mStorage = new GenericStorage();
 
+	public void forgetDevice(SmartDevice device) {
+		mInvalidDevices.remove(device.getAddress());
+		mDevices.remove(device.getAddress());
+	}
+
 	/**
 	 * Returns an instance of the DeviceScanner
 	 * @return The relevant device scanner for this device.
