@@ -3,6 +3,7 @@ package com.jameslandrum.bluetoothsmart.actions;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
+import android.util.Log;
 
 import com.jameslandrum.bluetoothsmart.Characteristic;
 import com.jameslandrum.bluetoothsmart.SmartDevice;
@@ -10,34 +11,49 @@ import com.jameslandrum.bluetoothsmart.actions.errors.CharacteristicWriteError;
 
 import org.apache.commons.codec.binary.Hex;
 
-public class SetCharacteristic extends CharacteristicAction implements SmartDevice.GattListener {
+import java.io.InputStream;
+import java.util.Arrays;
+
+public class LargeSetCharacteristic extends CharacteristicAction implements SmartDevice.GattListener {
 	private Characteristic mCharacteristic;
-	private byte[] mData;
 	private final Object mHolder = new Object();
 	private ActionError mError;
+	private byte[] mData;
+	private int mSize;
 
-	public SetCharacteristic(Characteristic characteristic, byte[] data) {
+	public LargeSetCharacteristic(Characteristic characteristic, byte[] data, int size) {
 		super(characteristic);
 		mCharacteristic = characteristic;
 		mData = data;
-	}
-
-	public void refresh(byte[] newValue) {
-		mData = newValue;
-		super.refresh();
+		mSize = size;
 	}
 
 	@Override
 	public ActionError execute(SmartDevice smartDevice) {
 		mError = super.execute(smartDevice);
 		if (mError != null) return mError;
+		int index = 0;
 
 		BluetoothGattCharacteristic characteristic = mCharacteristic.getCharacteristic();
 		characteristic.setValue(mData);
 
 		smartDevice.addGattListener(this);
-		mGatt.writeCharacteristic(characteristic);
-		try { synchronized (mHolder) { mHolder.wait(300); } } catch (InterruptedException e) {
+		try {
+			while (index < mData.length) {
+				if (!mDevice.isConnected()) {
+					mError = new CharacteristicWriteError();
+					return mError;
+				}
+				int end = Math.min(index+mSize, mData.length);
+				characteristic.setValue(Arrays.copyOfRange(mData,index,end));
+				mGatt.writeCharacteristic(characteristic);
+				Log.d("ActionRunner","Setting " + (end-index) + " bytes.");
+				synchronized (mHolder) {
+					mHolder.wait(300);
+				}
+				index+=mSize;
+			}
+		} catch (Exception e) {
 			mError = new CharacteristicWriteError();
 		}
 		smartDevice.removeGattListener(this);
@@ -68,7 +84,7 @@ public class SetCharacteristic extends CharacteristicAction implements SmartDevi
 
 	@Override
 	public String toString() {
-		return "Setting Characteristic " + mCharacteristic.getCharacteristicLabel() + " to " + new String(Hex.encodeHex(mData));
+		return "Writing to Characteristic " + mCharacteristic.getCharacteristicLabel();
 	}
 
 	/* Unused */

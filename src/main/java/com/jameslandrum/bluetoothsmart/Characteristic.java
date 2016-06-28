@@ -80,6 +80,12 @@ public class Characteristic {
 		mListeners.remove(listener);
 	}
 
+	public void setRespond(boolean respond) {
+		if (mCharacteristic != null) mCharacteristic.setWriteType(
+				respond ? BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
+						: BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+	}
+
 	public static class CharacteristicNotFoundError implements Action.ActionError {
 	}
 

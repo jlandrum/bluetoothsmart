@@ -299,6 +299,9 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 				characteristic.getUuid().toString());
 		if (c != null){
 			c.setCharacteristicValue(characteristic.getValue(), true);
+			for (GattListener listener : mGattListeners) {
+				listener.onCharacteristicNotify(c);
+			}
 		} else {
 			throw new RuntimeException("Characteristic notified but not known!");
 		}
@@ -337,6 +340,14 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		void onCharacteristicWrite(BluetoothGattCharacteristic characteristic, int status);
 		void onCharacteristicRead(BluetoothGattCharacteristic characteristic, int status);
 		void onDescriptorWrite(BluetoothGattDescriptor descriptor, int status);
+		void onCharacteristicNotify(Characteristic characteristic);
+	}
+
+	public static class SimpleGattListener implements GattListener {
+		@Override public void onCharacteristicWrite(BluetoothGattCharacteristic characteristic, int status) {}
+		@Override public void onCharacteristicRead(BluetoothGattCharacteristic characteristic, int status) {}
+		@Override public void onDescriptorWrite(BluetoothGattDescriptor descriptor, int status) {}
+		@Override public void onCharacteristicNotify(Characteristic characteristic) {}
 	}
 
 	public static class NotConnectedError implements Action.ActionError {

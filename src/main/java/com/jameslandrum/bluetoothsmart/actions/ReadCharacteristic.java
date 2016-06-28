@@ -74,6 +74,7 @@ public class ReadCharacteristic extends CharacteristicAction implements SmartDev
 
 	/* Unused */
 	@Override public void onDescriptorWrite(BluetoothGattDescriptor descriptor, int status) {}
+	@Override public void onCharacteristicNotify(Characteristic characteristic) {}
 	@Override public void onCharacteristicWrite(BluetoothGattCharacteristic characteristic, int status) {}
 	private class CharacteristicReadError implements ActionError {}
 }

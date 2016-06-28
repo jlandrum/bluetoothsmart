@@ -72,4 +72,5 @@ public class RegisterCharacteristic extends CharacteristicAction implements Smar
 	/* unused */
 	@Override public void onCharacteristicWrite(BluetoothGattCharacteristic characteristic, int status) {}
 	@Override public void onCharacteristicRead(BluetoothGattCharacteristic characteristic, int status) {}
+	@Override public void onCharacteristicNotify(Characteristic characteristic) {}
 }
