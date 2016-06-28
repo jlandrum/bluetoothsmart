@@ -1,12 +1,14 @@
 package com.jameslandrum.bluetoothsmart;
 
 import android.annotation.TargetApi;
+import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
+import android.bluetooth.BluetoothGattService;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.os.Build;
@@ -29,6 +31,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.UUID;
 
 /**
  * A generic SmartDevice - acts as a very basic SmartDevice
@@ -36,6 +39,8 @@ import java.util.HashMap;
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class SmartDevice<T> extends BluetoothGattCallback {
 	public static final String SMARTDEVICE_ID = "MacAddress";
+
+	protected static final String GSERVICE_DEVICE_INFO = "0000180a-0000-1000-8000-00805f9b34fb";
 
 	private Context mAppContext;
 	protected final BluetoothDevice mDevice;
@@ -51,6 +56,10 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	private ArrayList<GattListener> mGattListeners = new ArrayList<>();
 	private ActionRunner mActionRunner;
 	private SmartDeviceDef mDeclaration;
+
+	public static String uuidFromBase(String s) {
+		return "0000" + s + "-0000-1000-8000-00805f9b34fb";
+	}
 
 	public SmartDevice(BluetoothDevice device) {
 		mDevice = device;
@@ -114,6 +123,10 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 
 		mLastAd = System.currentTimeMillis();
 
+		postUpdate();
+	}
+
+	protected void postUpdate() {
 		for (UpdateListener l : mUpdateListeners) //noinspection unchecked
 			l.onUpdate(this);
 	}
@@ -192,7 +205,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		}
 		if (newState == BluetoothGatt.STATE_DISCONNECTED) {
 			DeviceScanner.removeConnectedDevice(mDevice);
-
+			onDisconnect();
 			mGatt.close();
 			mGatt = null;
 		}
@@ -206,9 +219,22 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		}
 	}
 
+	public void onDisconnect() {
+		for (UpdateListener listener : mUpdateListeners) {
+			listener.onDisconnect();
+		}
+	}
+
 	@Override
 	public void onServicesDiscovered(BluetoothGatt gatt, int status) {
 		super.onServicesDiscovered(gatt, status);
+		for (CharacteristicPair p : mCharacteristics.keySet()) {
+			BluetoothGattService s = gatt.getService(UUID.fromString(p.first));
+			if (s==null)continue;
+			BluetoothGattCharacteristic c = s.getCharacteristic(UUID.fromString(p.second));
+			if (c==null)continue;
+			mCharacteristics.get(p).setCharacteristic(c);
+		}
 		for (UpdateListener listener : mUpdateListeners) {
 			listener.onConnect();
 		}
