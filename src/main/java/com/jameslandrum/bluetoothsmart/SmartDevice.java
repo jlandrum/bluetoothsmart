@@ -32,6 +32,8 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * A generic SmartDevice - acts as a very basic SmartDevice
@@ -52,8 +54,8 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	private HashMap<Field, BaseAdEvaluator<Boolean>> mFieldProcessors = new HashMap<>();
 
 	private HashMap<CharacteristicPair,Characteristic> mCharacteristics = new HashMap<>();
-	private ArrayList<UpdateListener<T>> mUpdateListeners = new ArrayList<>();
-	private ArrayList<GattListener> mGattListeners = new ArrayList<>();
+	private ConcurrentLinkedQueue<UpdateListener<T>> mUpdateListeners = new ConcurrentLinkedQueue<>();
+	private ConcurrentLinkedQueue<GattListener> mGattListeners = new ConcurrentLinkedQueue<>();
 	private ActionRunner mActionRunner;
 	private SmartDeviceDef mDeclaration;
 

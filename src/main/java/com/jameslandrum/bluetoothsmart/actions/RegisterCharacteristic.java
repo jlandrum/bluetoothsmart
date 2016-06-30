@@ -19,7 +19,6 @@ public class RegisterCharacteristic extends CharacteristicAction implements Smar
 	protected static final UUID CHARACTERISTIC_UPDATE_NOTIFICATION_DESCRIPTOR_UUID =
 			UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
-
 	public RegisterCharacteristic(Characteristic characteristic, boolean enable) {
 		super(characteristic);
 		mEnable = enable;

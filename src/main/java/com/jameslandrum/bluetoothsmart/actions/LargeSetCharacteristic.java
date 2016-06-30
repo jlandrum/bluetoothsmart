@@ -47,7 +47,6 @@ public class LargeSetCharacteristic extends CharacteristicAction implements Smar
 				int end = Math.min(index+mSize, mData.length);
 				characteristic.setValue(Arrays.copyOfRange(mData,index,end));
 				mGatt.writeCharacteristic(characteristic);
-				Log.d("ActionRunner","Setting " + (end-index) + " bytes.");
 				synchronized (mHolder) {
 					mHolder.wait(300);
 				}
@@ -59,7 +58,7 @@ public class LargeSetCharacteristic extends CharacteristicAction implements Smar
 		smartDevice.removeGattListener(this);
 
 		if (mCompleteListener != null)
-			mCompleteListener.onActionCompleted(this, mError!=null);
+			mCompleteListener.onActionCompleted(this, mError==null);
 
 		return mError;
 	}

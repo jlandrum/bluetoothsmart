@@ -229,6 +229,10 @@ public class ActionRunner extends Thread {
         try { synchronized (mHolder) { mHolder.wait(); } } catch (InterruptedException ignored) { }
     }
 
+    public void clear() {
+        mActions.clear();
+    }
+
     /**
      * Error handler
      */
