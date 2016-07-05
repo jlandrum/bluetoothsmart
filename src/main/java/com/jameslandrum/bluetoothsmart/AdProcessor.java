@@ -16,22 +16,40 @@ public class AdProcessor {
 	private int mStart = 0;
 	private int mEnd = 0;
 	private int mMask = 0xFF;
+	private int mLength = 0;
 
 	public AdProcessor(Field f, AdValue value) {
 		mField = f;
 		mProcessor = Processor.forType(f.getType());
-		mStart = (int) Math.floor(value.startBit()/8.0f);
-		mShift = value.startBit()%8;
-		mEnd = (int) Math.ceil(value.endBit()/8.0f);
-		int clip = (value.endBit() - value.startBit()) % 8;
-		mMask ^= (clip == 0 ? 0 : (int)Math.pow(2,clip));
+		switch (value.type()) {
+			case BIT:
+				mStart = (int) Math.floor(value.start()/8.0f);
+				mShift = value.start()%8;
+				mEnd = (int) Math.ceil(value.end()/8.0f);
+				int clip = (value.end() - value.start()) % 8;
+				mMask = filter(clip);
+				mLength = (int) Math.ceil((value.end() - value.start()) / 8.0f);
+				break;
+			case BYTE:
+				mStart = value.start();
+				mEnd = value.end();
+				mLength = value.end() - value.start();
+				break;
+		}
 	}
 
+	byte[] data;
 	public void process(Object o, byte[] advertisement) {
-		byte[] filtered = Arrays.copyOfRange(advertisement, mStart, mEnd);
-		filtered[filtered.length-1] &= mMask;
-		BigInteger big = new BigInteger(filtered);
+		if (mProcessor == null) return;
+		data = advertisement;
+		byte[] chunk = Arrays.copyOfRange(advertisement, mStart, mEnd);
+		BigInteger big = new BigInteger(chunk);
 		big = big.shiftLeft(mShift);
+		int values = Math.max(1,(int) Math.ceil((float)big.bitLength()/8.0f));
+		byte[] shifted = big.toByteArray();
+		if (shifted.length > values) shifted = Arrays.copyOfRange(shifted, 1, shifted.length);
+		shifted[shifted.length-1] &= mMask;
+		big = new BigInteger(Arrays.copyOfRange(shifted,0,mLength));
 		try {
 			mField.setAccessible(true);
 			mProcessor.process(o,mField,big);
@@ -39,8 +57,20 @@ public class AdProcessor {
 		} catch (Exception ignored) {}
 	}
 
+	private int filter(int len) {
+		switch (len) {
+			case 1: return 0b10000000;
+			case 2: return 0b11000000;
+			case 3: return 0b11100000;
+			case 4: return 0b11110000;
+			case 5: return 0b11111000;
+			case 6: return 0b11111100;
+			case 7: return 0b11111110;
+			default: return 0b00000000;
+		}
+	}
 	private enum Processor {
-		Integer(Integer.class) {
+		Integer(int.class) {
 			@Override
 			void process(Object o, Field f, BigInteger data) throws IllegalAccessException {
 				f.setInt(o, data.intValue());
@@ -52,13 +82,12 @@ public class AdProcessor {
 				f.set(o, new String(data.toByteArray()));
 			}
 		},
-		Boolean(Boolean.class) {
+		Boolean(boolean.class) {
 			@Override
 			void process(Object o, Field f, BigInteger data) throws IllegalAccessException {
 				f.setBoolean(o, !(data.signum() == 0));
 			}
-		},
-
+		}
 		;
 
 		private Class<?> mType;
