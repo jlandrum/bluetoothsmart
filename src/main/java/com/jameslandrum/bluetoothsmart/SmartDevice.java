@@ -179,12 +179,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		mConnected = newState == BluetoothGatt.STATE_CONNECTED;
 		if (mConnected) {
 			if (mGatt.getServices().size() == 0 || !mWasRefreshed) {
-				if (gatt.getDevice().getBondState() != BluetoothDevice.BOND_BONDED) {
-					try { BluetoothGatt.class.getMethod("refresh").invoke(gatt); }
-					catch (Exception ignored) {}
-				}
 				mGatt.discoverServices();
-				mWasRefreshed = true;
 			} else {
 				onConnect();
 			}
