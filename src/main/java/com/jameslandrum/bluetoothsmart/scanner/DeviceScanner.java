@@ -2,6 +2,7 @@ package com.jameslandrum.bluetoothsmart.scanner;
 
 import android.bluetooth.BluetoothDevice;
 import android.os.Build;
+import android.os.Debug;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -111,7 +112,7 @@ public abstract class DeviceScanner {
 		boolean isBeacon = Arrays.equals(Arrays.copyOfRange(data, 5, 7), APPLE_PREFIX);
 
 		if (mDevices.containsKey(device.getAddress())) {
-			com.jameslandrum.bluetoothsmart.SmartDevice target = mDevices.get(device.getAddress());
+			SmartDevice target = mDevices.get(device.getAddress());
 			if (isBeacon) {
 				target.newBeacon();
 				for (DeviceScannerListener listener : mListeners) {
@@ -127,7 +128,7 @@ public abstract class DeviceScanner {
 			for (Method identifier : mDeviceIdentifiers.keySet()) {
 				try {
 					if ((boolean) identifier.invoke(null, new Object[] {data})) {
-						com.jameslandrum.bluetoothsmart.SmartDevice target =
+						SmartDevice target =
 								mDeviceIdentifiers
 										.get(identifier)
 										.getDeclaredConstructor(BluetoothDevice.class)
@@ -143,7 +144,6 @@ public abstract class DeviceScanner {
 						return;
 					}
 				} catch (Exception e) {
-					// TODO: Possibly throw exception - research added value of doing so.
 					e.printStackTrace();
 				}
 			}

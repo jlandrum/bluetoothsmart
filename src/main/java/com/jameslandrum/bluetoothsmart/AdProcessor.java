@@ -15,6 +15,7 @@ public class AdProcessor {
 	private int mShift = 0;
 	private int mStart = 0;
 	private int mEnd = 0;
+	private int mMask = 0xFF;
 
 	public AdProcessor(Field f, AdValue value) {
 		mField = f;
@@ -22,11 +23,15 @@ public class AdProcessor {
 		mStart = (int) Math.floor(value.startBit()/8.0f);
 		mShift = value.startBit()%8;
 		mEnd = (int) Math.ceil(value.endBit()/8.0f);
+		int clip = (value.endBit() - value.startBit()) % 8;
+		mMask ^= (clip == 0 ? 0 : (int)Math.pow(2,clip));
 	}
 
 	public void process(Object o, byte[] advertisement) {
-		BigInteger big = new BigInteger(Arrays.copyOfRange(advertisement, mStart, mEnd));
-		big = big.shiftRight(mShift);
+		byte[] filtered = Arrays.copyOfRange(advertisement, mStart, mEnd);
+		filtered[filtered.length-1] &= mMask;
+		BigInteger big = new BigInteger(filtered);
+		big = big.shiftLeft(mShift);
 		try {
 			mField.setAccessible(true);
 			mProcessor.process(o,mField,big);

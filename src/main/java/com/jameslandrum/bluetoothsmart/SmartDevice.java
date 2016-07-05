@@ -87,13 +87,9 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	private void loadFieldProcessors() {
 		try {
 			for (Field f : this.getClass().getDeclaredFields()) {
-				for (Annotation a : f.getAnnotations()) {
-					if (a.annotationType() == null) continue;
-					AdValue value = a.annotationType().getAnnotation(AdValue.class);
-					if (value != null) {
-						mAdValues.add(new AdProcessor(f,value));
-					}
-				}
+				Annotation a = f.getAnnotation(AdValue.class);
+				if (a!=null)
+					mAdValues.add(new AdProcessor(f, (AdValue) a));
 			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);
