@@ -1,5 +1,7 @@
 package com.jameslandrum.bluetoothsmart;
 
+import com.google.common.primitives.UnsignedInteger;
+import com.google.common.primitives.UnsignedInts;
 import com.jameslandrum.bluetoothsmart.annotations.AdValue;
 
 import java.lang.reflect.Field;
@@ -10,8 +12,10 @@ import java.util.Arrays;
  * Processes advertisements based on their specifications.
  */
 public class AdProcessor {
+	private AdValue mSource;
 	private Field mField;
 	private Processor mProcessor;
+
 	private int mShift = 0;
 	private int mStart = 0;
 	private int mEnd = 0;
@@ -19,6 +23,7 @@ public class AdProcessor {
 	private int mLength = 0;
 
 	public AdProcessor(Field f, AdValue value) {
+		mSource = value;
 		mField = f;
 		mProcessor = Processor.forType(f.getType());
 		switch (value.type()) {
@@ -38,10 +43,8 @@ public class AdProcessor {
 		}
 	}
 
-	byte[] data;
-	public void process(Object o, byte[] advertisement) {
+	void process(Object o, byte[] advertisement) {
 		if (mProcessor == null) return;
-		data = advertisement;
 		byte[] chunk = Arrays.copyOfRange(advertisement, mStart, mEnd);
 		BigInteger big = new BigInteger(chunk);
 		big = big.shiftLeft(mShift);
@@ -52,9 +55,11 @@ public class AdProcessor {
 		big = new BigInteger(Arrays.copyOfRange(shifted,0,mLength));
 		try {
 			mField.setAccessible(true);
-			mProcessor.process(o,mField,big);
+			mProcessor.process(o,this,big);
 			mField.setAccessible(false);
-		} catch (Exception ignored) {}
+		} catch (Exception ignored) {
+			ignored.printStackTrace();
+		}
 	}
 
 	private int filter(int len) {
@@ -69,23 +74,26 @@ public class AdProcessor {
 			default: return 0b00000000;
 		}
 	}
+
 	private enum Processor {
 		Integer(int.class) {
 			@Override
-			void process(Object o, Field f, BigInteger data) throws IllegalAccessException {
-				f.setInt(o, data.intValue());
+			void process(Object o, AdProcessor f, BigInteger data) throws IllegalAccessException {
+				int val = data.intValue();
+				if (!f.mSource.signed() && val < 0) val = (int) ((long)data.intValue() & 0xFFL);
+				f.mField.setInt(o, val);
 			}
 		},
 		String(String.class) {
 			@Override
-			void process(Object o, Field f, BigInteger data) throws IllegalAccessException {
-				f.set(o, new String(data.toByteArray()));
+			void process(Object o, AdProcessor f, BigInteger data) throws IllegalAccessException {
+				f.mField.set(o, new String(data.toByteArray()));
 			}
 		},
 		Boolean(boolean.class) {
 			@Override
-			void process(Object o, Field f, BigInteger data) throws IllegalAccessException {
-				f.setBoolean(o, !(data.signum() == 0));
+			void process(Object o, AdProcessor f, BigInteger data) throws IllegalAccessException {
+				f.mField.setBoolean(o, !(data.signum() == 0));
 			}
 		}
 		;
@@ -103,6 +111,6 @@ public class AdProcessor {
 			return null;
 		}
 
-		abstract void process(Object o, Field f, BigInteger data) throws IllegalAccessException;
+		abstract void process(Object o, AdProcessor p, BigInteger data) throws IllegalAccessException;
 	}
 }

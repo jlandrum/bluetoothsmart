@@ -9,6 +9,7 @@ import static com.jameslandrum.bluetoothsmart.annotations.AdValue.Type.BIT;
 public @interface AdValue {
 	int start();
 	int end();
+	boolean signed() default true;
 	Type type() default BIT;
 	public enum Type {
 		BIT,

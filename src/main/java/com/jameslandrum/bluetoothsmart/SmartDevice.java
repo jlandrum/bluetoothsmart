@@ -43,6 +43,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	private boolean mConnecting;
 	private String mName;
 	private long mLastAd;
+	private boolean mWasRefreshed;
 
 	private HashSet<AdProcessor> mAdValues = new HashSet<>();
 	private HashMap<CharacteristicPair,Characteristic> mCharacteristics = new HashMap<>();
@@ -177,8 +178,13 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		super.onConnectionStateChange(gatt, status, newState);
 		mConnected = newState == BluetoothGatt.STATE_CONNECTED;
 		if (mConnected) {
-			if (mGatt.getServices().size() == 0) {
+			if (mGatt.getServices().size() == 0 || !mWasRefreshed) {
+				if (gatt.getDevice().getBondState() != BluetoothDevice.BOND_BONDED) {
+					try { BluetoothGatt.class.getMethod("refresh").invoke(gatt); }
+					catch (Exception ignored) {}
+				}
 				mGatt.discoverServices();
+				mWasRefreshed = true;
 			} else {
 				onConnect();
 			}
