@@ -1,7 +1,5 @@
 package com.jameslandrum.bluetoothsmart.processors.adfield;
 
-import com.jameslandrum.bluetoothsmart.annotations.AdBoolean;
-
 public class BooleanAdEvaluator extends BaseAdEvaluator<Boolean> {
     AdBoolean mParams;
 

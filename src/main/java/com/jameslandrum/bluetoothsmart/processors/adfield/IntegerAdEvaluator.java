@@ -1,7 +1,5 @@
 package com.jameslandrum.bluetoothsmart.processors.adfield;
 
-import com.jameslandrum.bluetoothsmart.annotations.AdInteger;
-
 import java.math.BigInteger;
 import java.util.Arrays;
 
