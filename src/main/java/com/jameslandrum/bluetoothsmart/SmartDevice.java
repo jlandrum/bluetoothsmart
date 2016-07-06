@@ -72,6 +72,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	private void loadCharacteristics() {
 		try {
 			for (Field f : this.getClass().getDeclaredFields()) {
+				f.setAccessible(true);
 				Annotation a = f.getAnnotation(CharacteristicRef.class);
 				if (a!=null) {
 					CharacteristicRef charDef = (CharacteristicRef) a;
