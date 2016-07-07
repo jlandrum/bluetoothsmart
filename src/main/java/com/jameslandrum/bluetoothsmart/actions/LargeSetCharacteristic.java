@@ -83,7 +83,7 @@ public class LargeSetCharacteristic extends CharacteristicAction implements Smar
 
 	@Override
 	public String toString() {
-		return "Writing to Characteristic " + mCharacteristic.getCharacteristicLabel();
+		return "Writing " + mData.length + "b to Characteristic " + mCharacteristic.getCharacteristicLabel();
 	}
 
 	/* Unused */

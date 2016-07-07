@@ -24,7 +24,7 @@ public class RegisterCharacteristic extends CharacteristicAction implements Smar
 		super(characteristic);
 		mEnable = enable;
 		mCharacteristic = characteristic;
-		mListener = mListener;
+		mListener = listener;
 	}
 
 	@Override

@@ -1,6 +1,7 @@
 package com.jameslandrum.bluetoothsmart;
 
 import android.annotation.TargetApi;
+import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
 import android.bluetooth.BluetoothGattCallback;
@@ -131,6 +132,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		if (mGatt != null) {
 			if (!mConnected) mGatt.connect();
 		} else if (mAppContext != null) {
+			BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
 			mGatt = mDevice.connectGatt(mAppContext, mAutoConnect, this);
 		} else {
 			throw new InvalidStateException("Must call prepareActionRunner before calling connect.");
