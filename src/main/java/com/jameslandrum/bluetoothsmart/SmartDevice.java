@@ -1,7 +1,6 @@
 package com.jameslandrum.bluetoothsmart;
 
 import android.annotation.TargetApi;
-import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothGatt;
@@ -9,30 +8,24 @@ import android.bluetooth.BluetoothGattCallback;
 import android.bluetooth.BluetoothGattCharacteristic;
 import android.bluetooth.BluetoothGattDescriptor;
 import android.bluetooth.BluetoothGattService;
-import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.os.Build;
-import android.os.Debug;
 import android.support.annotation.CallSuper;
 import android.util.Log;
-import android.util.Pair;
 
 import com.jameslandrum.bluetoothsmart.actions.Action;
 import com.jameslandrum.bluetoothsmart.actions.ActionRunner;
-import com.jameslandrum.bluetoothsmart.annotations.AdEvaluator;
-import com.jameslandrum.bluetoothsmart.annotations.CharDef;
+import com.jameslandrum.bluetoothsmart.annotations.AdValue;
+import com.jameslandrum.bluetoothsmart.annotations.CharacteristicRef;
 import com.jameslandrum.bluetoothsmart.annotations.SmartDeviceDef;
-import com.jameslandrum.bluetoothsmart.processors.adfield.BaseAdEvaluator;
 import com.jameslandrum.bluetoothsmart.scanner.DeviceScanner;
 import com.jameslandrum.bluetoothsmart.throwable.InvalidStateException;
 
 import java.lang.annotation.Annotation;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -51,11 +44,13 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	private boolean mConnecting;
 	private String mName;
 	private long mLastAd;
-	private HashMap<Field, BaseAdEvaluator<Boolean>> mFieldProcessors = new HashMap<>();
+	private boolean mWasRefreshed;
 
+	private HashSet<AdProcessor> mAdValues = new HashSet<>();
 	private HashMap<CharacteristicPair,Characteristic> mCharacteristics = new HashMap<>();
 	private ConcurrentLinkedQueue<UpdateListener<T>> mUpdateListeners = new ConcurrentLinkedQueue<>();
 	private ConcurrentLinkedQueue<GattListener> mGattListeners = new ConcurrentLinkedQueue<>();
+
 	private ActionRunner mActionRunner;
 	private SmartDeviceDef mDeclaration;
 
@@ -78,11 +73,12 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	private void loadCharacteristics() {
 		try {
 			for (Field f : this.getClass().getDeclaredFields()) {
-				Annotation a = f.getAnnotation(CharDef.class);
+				f.setAccessible(true);
+				Annotation a = f.getAnnotation(CharacteristicRef.class);
 				if (a!=null) {
-					CharDef charDef = (CharDef) a;
+					CharacteristicRef charDef = (CharacteristicRef) a;
 					Characteristic chars = getCharacteristic(charDef.service(), charDef.id());
-					chars.setCharacteristicLabel(((CharDef) a).label());
+					chars.setCharacteristicLabel(((CharacteristicRef) a).label());
 					f.set(this,chars);
 				}
 			}
@@ -94,17 +90,9 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	private void loadFieldProcessors() {
 		try {
 			for (Field f : this.getClass().getDeclaredFields()) {
-				for (Annotation a : f.getAnnotations()) {
-					if (a.annotationType() == null) continue;
-					AdEvaluator evaluator = a.annotationType().getAnnotation(AdEvaluator.class);
-					if (evaluator != null && evaluator.annotationType() == AdEvaluator.class) {
-						Constructor[] c = evaluator.evaluator().getConstructors();
-						Log.e("OK","ADPARSE " + c[0].getName());
-						if (c.length > 1) throw new RuntimeException("Evaluator can only have one constructor");
-						////noinspection unchecked
-						mFieldProcessors.put(f, (BaseAdEvaluator<Boolean>) c[0].newInstance(a));
-					}
-				}
+				Annotation a = f.getAnnotation(AdValue.class);
+				if (a!=null)
+					mAdValues.add(new AdProcessor(f, (AdValue) a));
 			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -113,14 +101,8 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 
 	@CallSuper
 	public void newAdvertisement(byte[] data) {
-		for (Field f : mFieldProcessors.keySet()) {
-			try {
-				f.setAccessible(true);
-				f.set(this, mFieldProcessors.get(f).evaluate(data));
-			} catch (IllegalAccessException e) {
-				// TODO: Look at more graceful alternatives.
-				throw new RuntimeException(e);
-			}
+		for (AdProcessor p : mAdValues) {
+			p.process(this, data);
 		}
 
 		mLastAd = System.currentTimeMillis();
@@ -150,6 +132,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		if (mGatt != null) {
 			if (!mConnected) mGatt.connect();
 		} else if (mAppContext != null) {
+			BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
 			mGatt = mDevice.connectGatt(mAppContext, mAutoConnect, this);
 		} else {
 			throw new InvalidStateException("Must call prepareActionRunner before calling connect.");
@@ -198,7 +181,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		super.onConnectionStateChange(gatt, status, newState);
 		mConnected = newState == BluetoothGatt.STATE_CONNECTED;
 		if (mConnected) {
-			if (mGatt.getServices().size() == 0) {
+			if (mGatt.getServices().size() == 0 || !mWasRefreshed) {
 				mGatt.discoverServices();
 			} else {
 				onConnect();
