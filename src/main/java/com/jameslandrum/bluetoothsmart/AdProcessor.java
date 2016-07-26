@@ -1,13 +1,13 @@
 package com.jameslandrum.bluetoothsmart;
 
-import com.google.common.primitives.UnsignedInteger;
-import com.google.common.primitives.UnsignedInts;
 import com.jameslandrum.bluetoothsmart.annotations.AdCompatible;
 import com.jameslandrum.bluetoothsmart.annotations.AdValue;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.BitSet;
 
 /**
  * Processes advertisements based on their specifications.
@@ -17,11 +17,13 @@ public class AdProcessor {
 	private Field mField;
 	private Processor mProcessor;
 
-	private int mShift = 0;
 	private int mStart = 0;
 	private int mEnd = 0;
-	private int mMask = 0xFF;
-	private int mLength = 0;
+	private int mByteStart = 0;
+	private int mByteEnd = 0;
+	private int mByteLength = 0;
+	private int mShift = 0;
+	private int mClip = 0;
 
 	public AdProcessor(Field f, AdValue value) {
 		mSource = value;
@@ -29,78 +31,67 @@ public class AdProcessor {
 		mProcessor = Processor.forType(f.getType());
 		switch (value.type()) {
 			case BIT:
-				mStart = (int) Math.floor(value.start()/8.0f);
-				mShift = value.start()%8;
-				mEnd = (int) Math.ceil(value.end()/8.0f);
-				int clip = (value.end() - value.start()) % 8;
-				mMask = filter(clip);
-				mLength = (int) Math.ceil((value.end() - value.start()) / 8.0f);
-				break;
-			case BYTE:
 				mStart = value.start();
 				mEnd = value.end();
-				mLength = value.end() - value.start();
+				mByteStart = (int) Math.floor(mStart/8.0f);
+				mByteEnd =  (int) Math.ceil(mEnd/8.0f);
+				mByteLength = (int) Math.ceil((mEnd - mStart) / 8.0f);
+				mShift = (8 - mEnd % 8) % 8;
+				mClip = (mStart % 8 + mShift) % 8;
 				break;
+			case BYTE:
+				mStart = value.start() * 8;
+				mEnd = value.end() * 8;
+				mByteStart = value.start();
+				mByteEnd = value.end();
+				mByteLength = mByteEnd - mByteStart;
+  				break;
 		}
 	}
 
 	void process(Object o, byte[] advertisement) {
 		if (mProcessor == null) return;
-		byte[] chunk = Arrays.copyOfRange(advertisement, mStart, mEnd);
-		BigInteger big = new BigInteger(chunk);
-		big = big.shiftLeft(mShift);
-		int values = Math.max(1,(int) Math.ceil((float)big.bitLength()/8.0f));
-		byte[] shifted = big.toByteArray();
-		if (shifted.length > values) shifted = Arrays.copyOfRange(shifted, 1, shifted.length);
-		shifted[shifted.length-1] &= mMask;
-		big = new BigInteger(Arrays.copyOfRange(shifted,0,mLength));
+
+		BigInteger bytes = new BigInteger(Arrays.copyOfRange(advertisement, mByteStart, mByteEnd));
+		bytes = bytes.shiftRight(mShift);
+		byte[] data = bytes.toByteArray();
+		data = Arrays.copyOfRange(data, data.length-mByteLength, data.length);
+		if (mClip > 0) data[0] &= 0b11111111 >> mClip;
+
 		try {
 			mField.setAccessible(true);
-			mProcessor.process(o,this,big);
+			mProcessor.process(o,this,data);
 			mField.setAccessible(false);
 		} catch (Exception ignored) {
 			ignored.printStackTrace();
 		}
 	}
 
-	private int filter(int len) {
-		switch (len) {
-			case 1: return 0b10000000;
-			case 2: return 0b11000000;
-			case 3: return 0b11100000;
-			case 4: return 0b11110000;
-			case 5: return 0b11111000;
-			case 6: return 0b11111100;
-			case 7: return 0b11111110;
-			default: return 0b00000000;
-		}
-	}
-
 	private enum Processor {
 		Integer(int.class) {
 			@Override
-			void process(Object o, AdProcessor f, BigInteger data) throws IllegalAccessException {
-				int val = data.intValue();
-				if (!f.mSource.signed() && val < 0) val = (int) ((long)data.intValue() & 0xFFL);
+			void process(Object o, AdProcessor f, byte[] data) throws IllegalAccessException {
+				int val = new BigInteger(data).intValue();
+				if (!f.mSource.signed() && val < 0) val = (int) ((long)val & 0xFFL);
 				f.mField.setInt(o, val);
 			}
 		},
 		String(String.class) {
 			@Override
-			void process(Object o, AdProcessor f, BigInteger data) throws IllegalAccessException {
-				f.mField.set(o, new String(data.toByteArray()));
+			void process(Object o, AdProcessor f, byte[] data) throws IllegalAccessException {
+				f.mField.set(o, new String(data));
 			}
 		},
 		Boolean(boolean.class) {
 			@Override
-			void process(Object o, AdProcessor f, BigInteger data) throws IllegalAccessException {
-				f.mField.setBoolean(o, !(data.signum() == 0));
+			void process(Object o, AdProcessor f, byte[] data) throws IllegalAccessException {
+				f.mField.setBoolean(o, new BigInteger(data).intValue() > 0);
 			}
 		},
 		Compatible(AdCompatible.class) {
 			@Override
-			void process(Object o, AdProcessor f, BigInteger data) throws IllegalAccessException {
-				f.mField.set(o, data.toByteArray());
+			void process(Object o, AdProcessor f, byte[] data) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+				AdCompatible.class.getMethod("set", byte[].class).invoke(f.mField.get(o), data);
 			}
 		}
 		;
@@ -118,6 +109,6 @@ public class AdProcessor {
 			return null;
 		}
 
-		abstract void process(Object o, AdProcessor p, BigInteger data) throws IllegalAccessException;
+		abstract void process(Object o, AdProcessor p, byte[] data) throws IllegalAccessException, NoSuchMethodException, InvocationTargetException;
 	}
 }
