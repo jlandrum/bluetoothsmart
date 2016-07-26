@@ -100,7 +100,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	}
 
 	@CallSuper
-	public void newAdvertisement(byte[] data) {
+	public void newAdvertisement(byte[] data, int rssi) {
 		for (AdProcessor p : mAdValues) {
 			p.process(this, data);
 		}
@@ -127,7 +127,6 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		mActionRunner = customActionRunner;
 	}
 
-
 	public void connect(boolean mAutoConnect) {
 		if (mGatt != null) {
 			if (!mConnected) mGatt.connect();
@@ -145,7 +144,6 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 			if (mConnected) mGatt.disconnect();
 		}
 	}
-
 
 	public boolean isConnected() {
 		return mConnected;
@@ -304,6 +302,9 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	}
 
 	public ActionRunner getActionRunner() {
+		if (mActionRunner == null) {
+			mActionRunner = new ActionRunner(this, 5000, false);
+		}
 		return mActionRunner;
 	}
 

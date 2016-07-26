@@ -25,6 +25,6 @@ public class KitKatDeviceScanner extends DeviceScanner implements BluetoothAdapt
 
 	@Override
 	public void onLeScan(BluetoothDevice device, int rssi, byte[] scanRecord) {
-		processAdvertisement(scanRecord, device);
+		processAdvertisement(scanRecord, device, rssi);
 	}
 }

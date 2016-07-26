@@ -106,7 +106,7 @@ public abstract class DeviceScanner {
 		}
 	}
 
-	void processAdvertisement(byte[] data, android.bluetooth.BluetoothDevice device) {
+	void processAdvertisement(byte[] data, android.bluetooth.BluetoothDevice device, int rssi) {
 		if (mInvalidDevices.contains(device.getAddress())) return;
 
 		boolean isBeacon = Arrays.equals(Arrays.copyOfRange(data, 5, 7), APPLE_PREFIX);
@@ -119,7 +119,7 @@ public abstract class DeviceScanner {
 					listener.onDevicePinged(target);
 				}
 			} else {
-				target.newAdvertisement(data);
+				target.newAdvertisement(data,rssi);
 				for (DeviceScannerListener listener : mListeners) {
 					listener.onDeviceUpdated(target);
 				}
@@ -133,7 +133,7 @@ public abstract class DeviceScanner {
 										.get(identifier)
 										.getDeclaredConstructor(BluetoothDevice.class)
 										.newInstance(device);
-						target.newAdvertisement(data);
+						target.newAdvertisement(data,rssi);
 
 						Log.d("MESSAGE", "New known discovered: " + device.getAddress());
 						mDevices.put(device.getAddress(), target);
@@ -149,7 +149,7 @@ public abstract class DeviceScanner {
 			}
 			if (mAllowUnknowns) {
 				com.jameslandrum.bluetoothsmart.SmartDevice generic = new GenericDevice(device);
-				generic.newAdvertisement(data);
+				generic.newAdvertisement(data,rssi);
 				mDevices.put(device.getAddress(), generic);
 				for (DeviceScannerListener listener : mListeners) {
 					listener.onDeviceDiscovered(generic);

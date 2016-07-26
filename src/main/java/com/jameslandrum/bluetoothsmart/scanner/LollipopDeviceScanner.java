@@ -45,7 +45,7 @@ public class LollipopDeviceScanner extends DeviceScanner {
 		@Override
 		public void onScanResult(int callbackType, ScanResult result) {
 			if (result.getScanRecord() != null) {
-				processAdvertisement(result.getScanRecord().getBytes(), result.getDevice());
+				processAdvertisement(result.getScanRecord().getBytes(), result.getDevice(), result.getRssi());
 			}
 		}
 	};
