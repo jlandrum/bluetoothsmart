@@ -2,6 +2,7 @@ package com.jameslandrum.bluetoothsmart;
 
 import com.google.common.primitives.UnsignedInteger;
 import com.google.common.primitives.UnsignedInts;
+import com.jameslandrum.bluetoothsmart.annotations.AdCompatible;
 import com.jameslandrum.bluetoothsmart.annotations.AdValue;
 
 import java.lang.reflect.Field;
@@ -95,6 +96,12 @@ public class AdProcessor {
 			void process(Object o, AdProcessor f, BigInteger data) throws IllegalAccessException {
 				f.mField.setBoolean(o, !(data.signum() == 0));
 			}
+		},
+		Compatible(AdCompatible.class) {
+			@Override
+			void process(Object o, AdProcessor f, BigInteger data) throws IllegalAccessException {
+				f.mField.set(o, data.toByteArray());
+			}
 		}
 		;
 
@@ -106,7 +113,7 @@ public class AdProcessor {
 
 		public static Processor forType(Class<?> type) {
 			for (Processor p : values()) {
-				if (p.mType == type) return p;
+				if (p.mType.isAssignableFrom(type)) return p;
 			}
 			return null;
 		}
