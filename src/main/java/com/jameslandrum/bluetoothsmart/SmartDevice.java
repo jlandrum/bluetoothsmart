@@ -302,9 +302,6 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	}
 
 	public ActionRunner getActionRunner() {
-		if (mActionRunner == null) {
-			mActionRunner = new ActionRunner(this, 5000, false);
-		}
 		return mActionRunner;
 	}
 

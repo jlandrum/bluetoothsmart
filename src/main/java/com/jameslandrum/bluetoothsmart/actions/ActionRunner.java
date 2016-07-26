@@ -32,6 +32,7 @@ public class ActionRunner extends Thread {
 
     private static final int ASLEEP = 0;
     private static final int AWAKE = 1;
+    private AutoConnectHandler mConnectHandler;
 
     /**
      * Creates a thread that will execute actions on a timely manner.
@@ -107,6 +108,10 @@ public class ActionRunner extends Thread {
         if (mAutoConnect && !mDevice.isConnected() && !mActions.contains(Connect.CONNECT)) {
             mActions.addFirst(Connect.CONNECT);
             Log.d("ActionRunner", "Added CONNECT automatically as per Auto Connect policy.");
+            if (mConnectHandler != null) {
+                mConnectHandler.connect();
+                Log.d("ActionRunner", "Executing connect handler.");
+            }
         }
         if (mMaxActions > 0 && mMaxActions <= mActions.size()) {
             Log.d("ActionRunner", "Cannot add action - queue is full!");
@@ -233,11 +238,19 @@ public class ActionRunner extends Thread {
         mActions.clear();
     }
 
+    public void autoConnectHandler(AutoConnectHandler handler) {
+        mConnectHandler = handler;
+    }
+
     /**
      * Error handler
      */
     public interface ErrorHandler {
         boolean onError(Action.ActionError error);
+    }
+
+    public interface AutoConnectHandler {
+        void connect();
     }
 
 }
