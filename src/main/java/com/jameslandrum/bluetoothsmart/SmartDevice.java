@@ -127,6 +127,10 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		mActionRunner = customActionRunner;
 	}
 
+	protected void setActionRunner(ActionRunner actionRunner) {
+		mActionRunner = actionRunner;
+	}
+
 	public void connect(boolean mAutoConnect) {
 		if (mGatt != null) {
 			if (!mConnected) mGatt.connect();
