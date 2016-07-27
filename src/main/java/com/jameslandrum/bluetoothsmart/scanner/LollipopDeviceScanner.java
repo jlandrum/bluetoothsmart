@@ -24,7 +24,6 @@ public class LollipopDeviceScanner extends DeviceScanner {
 
 	@Override
 	public void startScan(@ScanMode int scanMode) {
-		if (DeviceScanner.getConnectedDevices() > 0) return;
 		mScanMode = scanMode;
 		if (mScanner == null) mScanner = mAdapter.getBluetoothLeScanner();
 		if (mAdapter.isEnabled() && mScanner != null) {

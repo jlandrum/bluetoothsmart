@@ -30,27 +30,6 @@ import java.util.List;
 public abstract class DeviceScanner {
 	private static final byte[] APPLE_PREFIX =
 			new byte[]{0x4C, 0x00};
-	private static HashSet<BluetoothDevice> mConnectedDevices = new HashSet<>();
-
-	public static void addConnectedDevice(BluetoothDevice mDevice) {
-		mConnectedDevices.add(mDevice);
-		getInstance().stopScan();
-		Log.d("DeviceScanner", "Scanner Stopped due to Device Connect ("+mConnectedDevices.size()+" connections)");
-	}
-
-	public static void removeConnectedDevice(BluetoothDevice mDevice) {
-		mConnectedDevices.remove(mDevice);
-		if (mConnectedDevices.size() == 0 && mScanMode != -2) {
-			getInstance().startScan(mScanMode);
-			Log.d("DeviceScanner", "Scanner Stopped due to All Device Disconnected");
-		} else {
-			Log.d("DeviceScanner", "Scanner Still Stopped due to Device Disconnect ("+mConnectedDevices.size()+" connections)");
-		}
-	}
-
-	public static int getConnectedDevices() {
-		return mConnectedDevices.size();
-	}
 
 	@IntDef({SCAN_MODE_LOW_LATENCY, SCAN_MODE_LOW_POWER, SCAN_MODE_NORMAL, SCAN_MODE_PASSIVE})
 	@Retention(RetentionPolicy.SOURCE)

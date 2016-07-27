@@ -188,10 +188,8 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 			} else {
 				onConnect();
 			}
-			DeviceScanner.addConnectedDevice(mDevice);
 		}
 		if (newState == BluetoothGatt.STATE_DISCONNECTED) {
-			DeviceScanner.removeConnectedDevice(mDevice);
 			onDisconnect();
 			mGatt.close();
 			mGatt = null;

@@ -23,7 +23,6 @@ public class Connect extends Action implements SmartDevice.UpdateListener {
 		super.execute(smartDevice);
 		if (smartDevice.isConnected()) return null;
 
-		DeviceScanner.addConnectedDevice(smartDevice.getDevice());
 		mError = new FailedToConnectError();
 
 		smartDevice.connect(false);
