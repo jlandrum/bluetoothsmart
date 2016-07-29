@@ -55,6 +55,7 @@ public class AdProcessor {
 		BigInteger bytes = new BigInteger(Arrays.copyOfRange(advertisement, mByteStart, mByteEnd));
 		bytes = bytes.shiftRight(mShift);
 		byte[] data = bytes.toByteArray();
+
 		data = Arrays.copyOfRange(data, data.length-mByteLength, data.length);
 		if (mClip > 0) data[0] &= 0b11111111 >> mClip;
 

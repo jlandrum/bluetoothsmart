@@ -220,9 +220,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 			if (c==null)continue;
 			mCharacteristics.get(p).setCharacteristic(c);
 		}
-		for (UpdateListener listener : mUpdateListeners) {
-			listener.onConnect();
-		}
+		onConnect();
 	}
 
 	@Override

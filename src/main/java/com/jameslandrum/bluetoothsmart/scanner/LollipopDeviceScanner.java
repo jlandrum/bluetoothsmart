@@ -8,6 +8,7 @@ import android.bluetooth.le.ScanFilter;
 import android.bluetooth.le.ScanResult;
 import android.bluetooth.le.ScanSettings;
 import android.os.Build;
+import android.util.Log;
 
 import com.jameslandrum.bluetoothsmart.SmartDevice;
 
@@ -28,6 +29,7 @@ public class LollipopDeviceScanner extends DeviceScanner {
 		if (mScanner == null) mScanner = mAdapter.getBluetoothLeScanner();
 		if (mAdapter.isEnabled() && mScanner != null) {
 			ScanSettings.Builder settings = new ScanSettings.Builder();
+			Log.d("LollipopDeviceScanner", "Setting scan mode to " + scanMode);
 			settings.setScanMode(scanMode);
 			mScanner.startScan(null, settings.build(), callback);
 		}
