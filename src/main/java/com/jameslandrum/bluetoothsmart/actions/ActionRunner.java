@@ -242,6 +242,10 @@ public class ActionRunner extends Thread {
         mConnectHandler = handler;
     }
 
+    public int getActionCount() {
+        return mActions.size();
+    }
+
     /**
      * Error handler
      */
