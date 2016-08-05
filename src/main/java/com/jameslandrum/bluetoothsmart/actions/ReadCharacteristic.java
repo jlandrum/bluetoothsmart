@@ -26,11 +26,20 @@ public class ReadCharacteristic extends CharacteristicAction implements SmartDev
 	public ActionError execute(SmartDevice smartDevice) {
 		mError = super.execute(smartDevice);
 		if (mError != null) return mError;
-
-		smartDevice.addGattListener(this);
-		mGatt.readCharacteristic(mCharacteristic.getCharacteristic());
-		try { synchronized (mHolder) { mHolder.wait(300); } } catch (InterruptedException e) { e.printStackTrace(); }
-		smartDevice.removeGattListener(this);
+		if (mCharacteristic.getCharacteristic() == null) {
+			mError = new CharacteristicReadError();
+		} else {
+			smartDevice.addGattListener(this);
+			mGatt.readCharacteristic(mCharacteristic.getCharacteristic());
+			try {
+				synchronized (mHolder) {
+					mHolder.wait(300);
+				}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			smartDevice.removeGattListener(this);
+		}
 
 		if (mCompleteListener != null)
 			mCompleteListener.onActionCompleted(this, mError==null);
