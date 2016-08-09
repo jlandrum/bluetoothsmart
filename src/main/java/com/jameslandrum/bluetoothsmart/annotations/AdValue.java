@@ -10,6 +10,7 @@ public @interface AdValue {
 	int start();
 	int end();
 	boolean signed() default true;
+	boolean flip() default false;
 	Type type() default BIT;
 	public enum Type {
 		BIT,
