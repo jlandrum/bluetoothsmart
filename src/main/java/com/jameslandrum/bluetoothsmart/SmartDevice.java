@@ -79,6 +79,9 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 					CharacteristicRef charDef = (CharacteristicRef) a;
 					Characteristic chars = getCharacteristic(charDef.service(), charDef.id());
 					chars.setCharacteristicLabel(((CharacteristicRef) a).label());
+					if (chars.getCharacteristicLabel().equals("Unknown")) {
+						chars.setCharacteristicLabel( f.getName() );
+					}
 					f.set(this,chars);
 				}
 			}
