@@ -50,7 +50,6 @@ public class LollipopDeviceScanner extends DeviceScanner {
 						ScanResult result = mAdsToProcess.firstEntry().getValue();
 						mAdsToProcess.remove(mAdsToProcess.firstEntry().getKey());
 						if (result.getScanRecord() != null) {
-							Log.i("Processing Ad", "Processing Advertisement for Device " + result.getDevice().getAddress());
 							processAdvertisement(result.getScanRecord().getBytes(), result.getDevice(), result.getRssi());
 						}
 					} catch (Exception ignored) {}

@@ -107,6 +107,7 @@ public abstract class DeviceScanner {
 					listener.onDevicePinged(target);
 				}
 			} else {
+				Log.i("Processing Ad", "Processing Advertisement for Device " + target.getAddress());
 				target.newAdvertisement(data,rssi);
 				for (DeviceScannerListener listener : mListeners) {
 					listener.onDeviceUpdated(target);
