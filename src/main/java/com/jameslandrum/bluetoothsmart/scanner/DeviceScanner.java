@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Interface class that connects to the proper device scanner for Android
@@ -44,14 +45,21 @@ public abstract class DeviceScanner {
 	private static boolean mAllowUnknowns = false;
 	protected static final ArrayList<DeviceScannerListener> mListeners = new ArrayList<>();
 	protected static final ArrayList<String> mInvalidDevices = new ArrayList<>();
-	protected static final HashMap<String, com.jameslandrum.bluetoothsmart.SmartDevice> mDevices = new HashMap<>();
-	protected static final HashMap<Method,Class<? extends com.jameslandrum.bluetoothsmart.SmartDevice>> mDeviceIdentifiers = new HashMap<>();
+	protected static final ConcurrentHashMap<String, SmartDevice> mDevices = new ConcurrentHashMap<>();
+	protected static final ConcurrentHashMap<Method,Class<? extends com.jameslandrum.bluetoothsmart.SmartDevice>> mDeviceIdentifiers = new ConcurrentHashMap<>();
 	private DevicePersistentStorage mStorage = new GenericStorage();
 
 	public void forgetDevice(SmartDevice device) {
 		mInvalidDevices.remove(device.getAddress());
 		mDevices.remove(device.getAddress());
 	}
+
+	public void injectDevice(SmartDevice device) {
+		mDevices.remove(device.getAddress());
+		mInvalidDevices.remove(device.getAddress());
+		mDevices.put(device.getAddress(),device);
+	}
+
 
 	/**
 	 * Returns an instance of the DeviceScanner
@@ -92,6 +100,7 @@ public abstract class DeviceScanner {
 
 		if (mDevices.containsKey(device.getAddress())) {
 			SmartDevice target = mDevices.get(device.getAddress());
+			if (!target.isProcessingEnabled()) return;
 			if (isBeacon) {
 				target.newBeacon();
 				for (DeviceScannerListener listener : mListeners) {

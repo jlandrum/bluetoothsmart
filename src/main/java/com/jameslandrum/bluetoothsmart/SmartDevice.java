@@ -53,6 +53,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 
 	private ActionRunner mActionRunner;
 	private SmartDeviceDef mDeclaration;
+	private boolean mProcessingEnabled = true;
 
 	public static String uuidFromBase(String s) {
 		return "0000" + s + "-0000-1000-8000-00805f9b34fb";
@@ -258,11 +259,20 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	}
 
 	public Characteristic getCharacteristic(String serviceId, String characteristicId) {
-		Characteristic c = mCharacteristics.get(new CharacteristicPair(serviceId,characteristicId));
+		String sec = characteristicId;
+		if (characteristicId.length() == 2) {
+			sec = serviceId.substring(0,6) + characteristicId + serviceId.substring(8);
+		}
+		if (characteristicId.length() == 4) {
+			sec = serviceId.substring(0,4) + characteristicId + serviceId.substring(8);
+		}
+
+
+		Characteristic c = mCharacteristics.get(new CharacteristicPair(serviceId,sec));
 		if (c == null) {
-			c = new Characteristic(serviceId,characteristicId);
+			c = new Characteristic(serviceId,sec);
 			updateCharacteristic(c);
-			mCharacteristics.put(new CharacteristicPair(serviceId,characteristicId), c);
+			mCharacteristics.put(new CharacteristicPair(serviceId,sec), c);
 		}
 		return c;
 	}
@@ -314,6 +324,14 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 
 	public BluetoothDevice getDevice() {
 		return mDevice;
+	}
+
+	public boolean isProcessingEnabled() {
+		return mProcessingEnabled;
+	}
+
+	public void setProcessingEnabled(boolean enabled) {
+		mProcessingEnabled = mProcessingEnabled;
 	}
 
 	public interface UpdateListener<T> {
