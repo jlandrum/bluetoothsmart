@@ -80,6 +80,7 @@ public abstract class DeviceScanner {
 
 	public abstract void startScan(@ScanMode int scanMode);
 	public abstract void stopScan();
+	public abstract boolean isScanning();
 
 	public void addDeviceType(Class<? extends com.jameslandrum.bluetoothsmart.SmartDevice> type) {
 		try {

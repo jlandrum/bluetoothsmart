@@ -7,7 +7,8 @@ import android.bluetooth.BluetoothDevice;
  * Scanner for API 19
  */
 public class KitKatDeviceScanner extends DeviceScanner implements BluetoothAdapter.LeScanCallback {
-	public BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
+	private BluetoothAdapter mAdapter = BluetoothAdapter.getDefaultAdapter();
+	private boolean mIsScanning;
 
 	KitKatDeviceScanner() {
 		super();
@@ -15,12 +16,21 @@ public class KitKatDeviceScanner extends DeviceScanner implements BluetoothAdapt
 
 	@Override
 	public void startScan(@ScanMode int scanMode) {
-		if (mAdapter.isEnabled()) mAdapter.startLeScan(this);
+		if (!mAdapter.isEnabled()) return;
+		mAdapter.startLeScan(this);
+		mIsScanning = true;
 	}
 
 	@Override
 	public void stopScan() {
-		if (mAdapter.isEnabled()) mAdapter.stopLeScan(this);
+		if (!mAdapter.isEnabled()) return;
+		mAdapter.stopLeScan(this);
+		mIsScanning = false;
+	}
+
+	@Override
+	public boolean isScanning() {
+		return mAdapter.isEnabled() && mIsScanning;
 	}
 
 	@Override

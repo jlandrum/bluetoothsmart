@@ -22,6 +22,7 @@ public class LollipopDeviceScanner extends DeviceScanner {
 	private Thread mProcessorThread;
 	private final Object mLock = new Object();
 	private ConcurrentSkipListMap<String, ScanResult> mAdsToProcess = new ConcurrentSkipListMap<>();
+	private boolean mIsScanning;
 
 	@Override
 	public void startScan(@ScanMode int scanMode) {
@@ -32,6 +33,7 @@ public class LollipopDeviceScanner extends DeviceScanner {
 			Log.d("LollipopDeviceScanner", "Setting scan mode to " + scanMode);
 			settings.setScanMode(scanMode);
 			mScanner.startScan(null, settings.build(), callback);
+			mIsScanning = true;
 		}
 		mProcessorThread = new Thread(new Runnable() {
 			@Override
@@ -63,8 +65,14 @@ public class LollipopDeviceScanner extends DeviceScanner {
 	public void stopScan() {
 		if (mScanner != null && mAdapter.isEnabled()) {
 			mScanner.stopScan(callback);
+			mIsScanning = false;
 			mProcessorThread.interrupt();
 		}
+	}
+
+	@Override
+	public boolean isScanning() {
+		return mIsScanning;
 	}
 
 	private ScanCallback callback = new ScanCallback() {

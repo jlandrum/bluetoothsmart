@@ -8,11 +8,11 @@ import com.jameslandrum.bluetoothsmart.actions.errors.FailedToBondError;
 /**
  * Creates a bond with the given device.
  */
-public class Bond extends Action {
+public class Unbond extends Action {
 	private final Object mHolder = new Object();
-	public static final Bond BOND = new Bond();
+	public static final Unbond BOND = new Unbond();
 
-	public Bond() {
+	public Unbond() {
 		super();
 	}
 
@@ -20,8 +20,8 @@ public class Bond extends Action {
 	@Override
 	public ActionError execute(SmartDevice smartDevice) {
 		super.execute(smartDevice);
-		if (smartDevice.isBonded()) return null;
-		if (!smartDevice.createBond()) {
+		if (!smartDevice.isBonded()) return null;
+		if (!smartDevice.removeBond()) {
 			return new FailedToBondError();
 		} return null;
 	}

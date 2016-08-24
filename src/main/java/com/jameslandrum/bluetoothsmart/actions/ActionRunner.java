@@ -118,7 +118,7 @@ public class ActionRunner extends Thread {
             return;
         }
         mActions.add(a);
-        Log.d("ActionRunner", "Added action to ActionRunner!");
+        Log.d("ActionRunner", "Added action "+a.toString()+" to ActionRunner!");
         if (mError == null && mMode == ASLEEP) {
             Log.d("ActionRunner", "Waking ActionRunner!");
             synchronized (mHolder) {
@@ -133,14 +133,12 @@ public class ActionRunner extends Thread {
      * Adds the action to the queue, and moves it to the end of the queue if it has already
      * been placed in the queue.
      * @param a Action to add to the queue.
-     * @param pushToLastIfExists If true, the action will be removed and pushed to the end as long
-     *                           as the action is not first in line.
+     * @param noDuplicates If true, the action will not be added if it is already enqueued.
      */
-    public void addActionToQueue(Action a, boolean pushToLastIfExists) {
-        if (pushToLastIfExists && mActions.contains(a) && mActions.peekFirst() != a) {
-            mActions.remove(a);
+    public void addActionToQueue(Action a, boolean noDuplicates) {
+        if (!noDuplicates  || !mActions.contains(a)) {
+            addActionToQueue(a);
         }
-        addActionToQueue(a);
     }
 
 	/**

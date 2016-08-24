@@ -18,11 +18,11 @@ import com.jameslandrum.bluetoothsmart.actions.ActionRunner;
 import com.jameslandrum.bluetoothsmart.annotations.AdValue;
 import com.jameslandrum.bluetoothsmart.annotations.CharacteristicRef;
 import com.jameslandrum.bluetoothsmart.annotations.SmartDeviceDef;
-import com.jameslandrum.bluetoothsmart.scanner.DeviceScanner;
 import com.jameslandrum.bluetoothsmart.throwable.InvalidStateException;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.UUID;
@@ -44,7 +44,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	private boolean mConnecting;
 	private String mName;
 	private long mLastAd;
-	private boolean mWasRefreshed;
+	private boolean mServicesDiscovered;
 
 	private HashSet<AdProcessor> mAdValues = new HashSet<>();
 	private HashMap<CharacteristicPair,Characteristic> mCharacteristics = new HashMap<>();
@@ -167,12 +167,25 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		return mName;
 	}
 
-	public boolean bond() {
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && mDevice.getBondState() != BluetoothDevice.BOND_BONDED) {
-			return mDevice.createBond();
-		}
-		return false;
+	public boolean createBond() {
+		return Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
+				&& mDevice.getBondState() != BluetoothDevice.BOND_BONDED
+				&& mDevice.createBond();
 	}
+
+	public boolean removeBond() {
+		return Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
+				&& mDevice.getBondState() != BluetoothDevice.BOND_BONDED
+				&& unpairDevice(mDevice);
+	}
+
+	private Boolean unpairDevice(BluetoothDevice device) {
+		try {
+			Method m = device.getClass().getMethod("removeBond", (Class[]) null);
+			return (Boolean) m.invoke(device, (Object[]) null);
+		} catch (Exception ignored) { return false; }
+	}
+
 
 	public String getId() {
 		return mDevice.getAddress();
@@ -187,7 +200,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		super.onConnectionStateChange(gatt, status, newState);
 		mConnected = newState == BluetoothGatt.STATE_CONNECTED;
 		if (mConnected) {
-			if (mGatt.getServices().size() == 0 || !mWasRefreshed) {
+			if (mGatt.getServices().size() == 0) {
 				mGatt.discoverServices();
 			} else {
 				onConnect();
@@ -224,6 +237,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 			if (c==null)continue;
 			mCharacteristics.get(p).setCharacteristic(c);
 		}
+		mServicesDiscovered = true;
 		onConnect();
 	}
 
@@ -333,6 +347,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	public void setProcessingEnabled(boolean enabled) {
 		mProcessingEnabled = mProcessingEnabled;
 	}
+
 
 	public interface UpdateListener<T> {
 		void onUpdate(T device);
