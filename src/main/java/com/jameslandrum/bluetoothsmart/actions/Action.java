@@ -9,6 +9,7 @@ public class Action {
 	protected SmartDevice mDevice;
 	private boolean mRepeating;
 	protected OnActionCompleteListener mCompleteListener;
+	private boolean mCanFail;
 
 	public Action() {}
 
@@ -23,6 +24,15 @@ public class Action {
 	}
 
 	public boolean noDelay() { return false; }
+
+	public Action allowFailure(boolean b) {
+		mCanFail = b;
+		return this;
+	}
+
+	public boolean canFail() {
+		return mCanFail;
+	}
 
 	public interface ActionError {}
 

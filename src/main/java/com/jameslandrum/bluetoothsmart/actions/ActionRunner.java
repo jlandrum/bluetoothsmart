@@ -72,20 +72,24 @@ public class ActionRunner extends Thread {
             Log.d("ActionRunner", "ActionRunner is executing action: " + a.toString() + ". There are " + mActions.size() + " more in queue.");
             mError = a.execute(mDevice);
             if (mError != null) {
-                Log.d("ActionRunner", "ActionRunner encountered an error and will pause.");
-                boolean wasHandled = false;
-                for (ErrorHandler listener : mListeners) {
-                    wasHandled = listener.onError(mError);
-                    if (wasHandled) break;
-                }
-                mError = null;
-                if (!wasHandled) {
-                    Log.d("ActionRunner", "ActionRunner failed to resolve error. Will now clear the action queue and restart.");
-                    mActions.clear();
-                    continue;
-                }
-                waitForInterrupt();
-                continue;
+                 if (!a.canFail()) {
+                     Log.d("ActionRunner", "ActionRunner encountered an error and will pause.");
+                     boolean wasHandled = false;
+                     for (ErrorHandler listener : mListeners) {
+                         wasHandled = listener.onError(mError);
+                         if (wasHandled) break;
+                     }
+                     mError = null;
+                     if (!wasHandled) {
+                         Log.d("ActionRunner", "ActionRunner failed to resolve error. Will now clear the action queue and restart.");
+                         mActions.clear();
+                         continue;
+                     }
+                     waitForInterrupt();
+                     continue;
+                 } else {
+                     Log.d("ActionRunner", "Action failed permissively.");
+                 }
             }
             Log.d("ActionRunner", "Action took " + (System.currentTimeMillis() - mLastTrigger) + "ms to complete.");
             long timeUntilNextTrigger = mInterval - (System.currentTimeMillis() - mLastTrigger);
