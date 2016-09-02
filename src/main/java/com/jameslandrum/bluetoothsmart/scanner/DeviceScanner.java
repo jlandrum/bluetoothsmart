@@ -95,7 +95,7 @@ public abstract class DeviceScanner {
 	}
 
 	void processAdvertisement(byte[] data, android.bluetooth.BluetoothDevice device, int rssi) {
-		if (mInvalidDevices.contains(device.getAddress())) return;
+  		if (mInvalidDevices.contains(device.getAddress())) return;
 
 		boolean isBeacon = Arrays.equals(Arrays.copyOfRange(data, 5, 7), APPLE_PREFIX);
 
