@@ -28,7 +28,7 @@ public class ActionRunner extends Thread {
     private final Object mHolder = new Object();
     private int mMaxActions = 16;
     private boolean mAutoConnect;
-    private int mMode;
+    private int mMode = ASLEEP;
 
     private static final int ASLEEP = 0;
     private static final int AWAKE = 1;
@@ -216,9 +216,11 @@ public class ActionRunner extends Thread {
             Log.d("ActionRunner", "ActionRunner is asleep - will auto terminate if not interrupted in " + mAutoTerminate + "ms");
             try { synchronized (mHolder) { mHolder.wait(mAutoTerminate); } } catch (InterruptedException ignored) { }
             if (System.currentTimeMillis() - beginSleep >= mAutoTerminate ) {
-                mDevice.disconnect();
-                mMode = ASLEEP;
-                Log.d("ActionRunner", "ActionRunner is auto-killing connection.");
+                if (mMode != ASLEEP) {
+                    mDevice.disconnect();
+                    mMode = ASLEEP;
+                    Log.d("ActionRunner", "ActionRunner is auto-killing connection to device " + mDevice.getAddress() + ".");
+                }
             } else {
                 mMode = AWAKE;
                 Log.d("ActionRunner", "ActionRunner received wake signal.");

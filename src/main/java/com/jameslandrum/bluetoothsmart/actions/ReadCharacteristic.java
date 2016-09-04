@@ -33,7 +33,7 @@ public class ReadCharacteristic extends CharacteristicAction implements SmartDev
 			mGatt.readCharacteristic(mCharacteristic.getCharacteristic());
 			try {
 				synchronized (mHolder) {
-					mHolder.wait(300);
+					mHolder.wait(5000);
 				}
 			} catch (InterruptedException e) {
 				e.printStackTrace();
@@ -52,9 +52,11 @@ public class ReadCharacteristic extends CharacteristicAction implements SmartDev
 
 	@Override
 	public void onCharacteristicRead(BluetoothGattCharacteristic characteristic, int status) {
+
 		if (status == BluetoothGatt.GATT_FAILURE) {
 			mError = new CharacteristicReadError();
 		} else {
+			mCharacteristic.setCharacteristic(characteristic);
 			for (OnReadCharacteristic r : mListeners) {
 				r.onCharacteristicRead(mCharacteristic);
 			}
