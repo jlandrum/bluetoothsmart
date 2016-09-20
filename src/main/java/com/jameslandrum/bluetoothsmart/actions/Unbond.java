@@ -19,12 +19,16 @@ package com.jameslandrum.bluetoothsmart.actions;
 import android.support.annotation.Nullable;
 
 import com.jameslandrum.bluetoothsmart.SmartDevice;
+import com.jameslandrum.bluetoothsmart.actions.errors.FailedToBondError;
 
 /**
- * Disconnects from the existing connection explicitly.
+ * Creates a bond with the given device.
  */
-public class Disconnect extends Action {
-	public Disconnect() {
+public class Unbond extends Action {
+	private final Object mHolder = new Object();
+	public static final Unbond BOND = new Unbond();
+
+	public Unbond() {
 		super();
 	}
 
@@ -32,8 +36,10 @@ public class Disconnect extends Action {
 	@Override
 	public ActionError execute(SmartDevice smartDevice) {
 		super.execute(smartDevice);
-		smartDevice.getGatt().disconnect();
-		return null;
+		if (!smartDevice.isBonded()) return null;
+		if (!smartDevice.removeBond()) {
+			return new FailedToBondError();
+		} return null;
 	}
 
 	@Override
@@ -43,6 +49,6 @@ public class Disconnect extends Action {
 
 	@Override
 	public String toString() {
-		return "Disconnect";
+		return "Bonding";
 	}
 }

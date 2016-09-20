@@ -1,7 +1,24 @@
+/**
+ * Copyright 2016 James Landrum
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.jameslandrum.bluetoothsmart.scanner;
 
 import android.bluetooth.BluetoothDevice;
 import android.os.Build;
+import android.os.Debug;
 import android.support.annotation.IntDef;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -22,6 +39,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Interface class that connects to the proper device scanner for Android
@@ -29,27 +47,6 @@ import java.util.List;
 public abstract class DeviceScanner {
 	private static final byte[] APPLE_PREFIX =
 			new byte[]{0x4C, 0x00};
-	private static HashSet<BluetoothDevice> mConnectedDevices = new HashSet<>();
-
-	public static void addConnectedDevice(BluetoothDevice mDevice) {
-		mConnectedDevices.add(mDevice);
-		getInstance().stopScan();
-		Log.d("DeviceScanner", "Scanner Stopped due to Device Connect ("+mConnectedDevices.size()+" connections)");
-	}
-
-	public static void removeConnectedDevice(BluetoothDevice mDevice) {
-		mConnectedDevices.remove(mDevice);
-		if (mConnectedDevices.size() == 0 && mScanMode != -2) {
-			getInstance().startScan(mScanMode);
-			Log.d("DeviceScanner", "Scanner Stopped due to All Device Disconnected");
-		} else {
-			Log.d("DeviceScanner", "Scanner Still Stopped due to Device Disconnect ("+mConnectedDevices.size()+" connections)");
-		}
-	}
-
-	public static int getConnectedDevices() {
-		return mConnectedDevices.size();
-	}
 
 	@IntDef({SCAN_MODE_LOW_LATENCY, SCAN_MODE_LOW_POWER, SCAN_MODE_NORMAL, SCAN_MODE_PASSIVE})
 	@Retention(RetentionPolicy.SOURCE)
@@ -64,14 +61,21 @@ public abstract class DeviceScanner {
 	private static boolean mAllowUnknowns = false;
 	protected static final ArrayList<DeviceScannerListener> mListeners = new ArrayList<>();
 	protected static final ArrayList<String> mInvalidDevices = new ArrayList<>();
-	protected static final HashMap<String, com.jameslandrum.bluetoothsmart.SmartDevice> mDevices = new HashMap<>();
-	protected static final HashMap<Method,Class<? extends com.jameslandrum.bluetoothsmart.SmartDevice>> mDeviceIdentifiers = new HashMap<>();
+	protected static final ConcurrentHashMap<String, SmartDevice> mDevices = new ConcurrentHashMap<>();
+	protected static final ConcurrentHashMap<Method,Class<? extends com.jameslandrum.bluetoothsmart.SmartDevice>> mDeviceIdentifiers = new ConcurrentHashMap<>();
 	private DevicePersistentStorage mStorage = new GenericStorage();
 
 	public void forgetDevice(SmartDevice device) {
 		mInvalidDevices.remove(device.getAddress());
 		mDevices.remove(device.getAddress());
 	}
+
+	public void injectDevice(SmartDevice device) {
+		mDevices.remove(device.getAddress());
+		mInvalidDevices.remove(device.getAddress());
+		mDevices.put(device.getAddress(),device);
+	}
+
 
 	/**
 	 * Returns an instance of the DeviceScanner
@@ -92,6 +96,7 @@ public abstract class DeviceScanner {
 
 	public abstract void startScan(@ScanMode int scanMode);
 	public abstract void stopScan();
+	public abstract boolean isScanning();
 
 	public void addDeviceType(Class<? extends com.jameslandrum.bluetoothsmart.SmartDevice> type) {
 		try {
@@ -105,20 +110,22 @@ public abstract class DeviceScanner {
 		}
 	}
 
-	void processAdvertisement(byte[] data, android.bluetooth.BluetoothDevice device) {
-		if (mInvalidDevices.contains(device.getAddress())) return;
+	void processAdvertisement(byte[] data, android.bluetooth.BluetoothDevice device, int rssi) {
+  		if (mInvalidDevices.contains(device.getAddress())) return;
 
 		boolean isBeacon = Arrays.equals(Arrays.copyOfRange(data, 5, 7), APPLE_PREFIX);
 
 		if (mDevices.containsKey(device.getAddress())) {
-			com.jameslandrum.bluetoothsmart.SmartDevice target = mDevices.get(device.getAddress());
+			SmartDevice target = mDevices.get(device.getAddress());
+			if (!target.isProcessingEnabled()) return;
 			if (isBeacon) {
 				target.newBeacon();
 				for (DeviceScannerListener listener : mListeners) {
 					listener.onDevicePinged(target);
 				}
 			} else {
-				target.newAdvertisement(data);
+				Log.i("Processing Ad", "Processing Advertisement for Device " + target.getAddress());
+				target.newAdvertisement(data,rssi);
 				for (DeviceScannerListener listener : mListeners) {
 					listener.onDeviceUpdated(target);
 				}
@@ -127,12 +134,12 @@ public abstract class DeviceScanner {
 			for (Method identifier : mDeviceIdentifiers.keySet()) {
 				try {
 					if ((boolean) identifier.invoke(null, new Object[] {data})) {
-						com.jameslandrum.bluetoothsmart.SmartDevice target =
+						SmartDevice target =
 								mDeviceIdentifiers
 										.get(identifier)
 										.getDeclaredConstructor(BluetoothDevice.class)
 										.newInstance(device);
-						target.newAdvertisement(data);
+						target.newAdvertisement(data,rssi);
 
 						Log.d("MESSAGE", "New known discovered: " + device.getAddress());
 						mDevices.put(device.getAddress(), target);
@@ -143,13 +150,12 @@ public abstract class DeviceScanner {
 						return;
 					}
 				} catch (Exception e) {
-					// TODO: Possibly throw exception - research added value of doing so.
 					e.printStackTrace();
 				}
 			}
 			if (mAllowUnknowns) {
 				com.jameslandrum.bluetoothsmart.SmartDevice generic = new GenericDevice(device);
-				generic.newAdvertisement(data);
+				generic.newAdvertisement(data,rssi);
 				mDevices.put(device.getAddress(), generic);
 				for (DeviceScannerListener listener : mListeners) {
 					listener.onDeviceDiscovered(generic);

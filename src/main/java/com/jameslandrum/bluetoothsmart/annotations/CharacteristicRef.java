@@ -14,35 +14,17 @@
  * limitations under the License.
  */
 
-package com.jameslandrum.bluetoothsmart.actions;
+package com.jameslandrum.bluetoothsmart.annotations;
 
-import android.support.annotation.Nullable;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import com.jameslandrum.bluetoothsmart.SmartDevice;
-
-/**
- * Disconnects from the existing connection explicitly.
- */
-public class Disconnect extends Action {
-	public Disconnect() {
-		super();
-	}
-
-	@Nullable
-	@Override
-	public ActionError execute(SmartDevice smartDevice) {
-		super.execute(smartDevice);
-		smartDevice.getGatt().disconnect();
-		return null;
-	}
-
-	@Override
-	public boolean noDelay() {
-		return true;
-	}
-
-	@Override
-	public String toString() {
-		return "Disconnect";
-	}
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+public @interface CharacteristicRef {
+    String service();
+    String id();
+    String label() default "Unknown";
 }

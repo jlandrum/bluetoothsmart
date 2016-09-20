@@ -1,3 +1,19 @@
+/**
+ * Copyright 2016 James Landrum
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package com.jameslandrum.bluetoothsmart.actions;
 
 import android.annotation.SuppressLint;
@@ -28,10 +44,11 @@ public class ActionRunner extends Thread {
     private final Object mHolder = new Object();
     private int mMaxActions = 16;
     private boolean mAutoConnect;
-    private int mMode;
+    private int mMode = ASLEEP;
 
     private static final int ASLEEP = 0;
     private static final int AWAKE = 1;
+    private AutoConnectHandler mConnectHandler;
 
     /**
      * Creates a thread that will execute actions on a timely manner.
@@ -71,20 +88,24 @@ public class ActionRunner extends Thread {
             Log.d("ActionRunner", "ActionRunner is executing action: " + a.toString() + ". There are " + mActions.size() + " more in queue.");
             mError = a.execute(mDevice);
             if (mError != null) {
-                Log.d("ActionRunner", "ActionRunner encountered an error and will pause.");
-                boolean wasHandled = false;
-                for (ErrorHandler listener : mListeners) {
-                    wasHandled = listener.onError(mError);
-                    if (wasHandled) break;
-                }
-                mError = null;
-                if (!wasHandled) {
-                    Log.d("ActionRunner", "ActionRunner failed to resolve error. Will now clear the action queue and restart.");
-                    mActions.clear();
-                    continue;
-                }
-                waitForInterrupt();
-                continue;
+                 if (!a.canFail()) {
+                     Log.d("ActionRunner", "ActionRunner encountered an error and will pause.");
+                     boolean wasHandled = false;
+                     for (ErrorHandler listener : mListeners) {
+                         wasHandled = listener.onError(mError);
+                         if (wasHandled) break;
+                     }
+                     mError = null;
+                     if (!wasHandled) {
+                         Log.d("ActionRunner", "ActionRunner failed to resolve error. Will now clear the action queue and restart.");
+                         mActions.clear();
+                         continue;
+                     }
+                     waitForInterrupt();
+                     continue;
+                 } else {
+                     Log.d("ActionRunner", "Action failed permissively.");
+                 }
             }
             Log.d("ActionRunner", "Action took " + (System.currentTimeMillis() - mLastTrigger) + "ms to complete.");
             long timeUntilNextTrigger = mInterval - (System.currentTimeMillis() - mLastTrigger);
@@ -107,13 +128,17 @@ public class ActionRunner extends Thread {
         if (mAutoConnect && !mDevice.isConnected() && !mActions.contains(Connect.CONNECT)) {
             mActions.addFirst(Connect.CONNECT);
             Log.d("ActionRunner", "Added CONNECT automatically as per Auto Connect policy.");
+            if (mConnectHandler != null) {
+                mConnectHandler.connect();
+                Log.d("ActionRunner", "Executing connect handler.");
+            }
         }
         if (mMaxActions > 0 && mMaxActions <= mActions.size()) {
             Log.d("ActionRunner", "Cannot add action - queue is full!");
             return;
         }
         mActions.add(a);
-        Log.d("ActionRunner", "Added action to ActionRunner!");
+        Log.d("ActionRunner", "Added action "+a.toString()+" to ActionRunner!");
         if (mError == null && mMode == ASLEEP) {
             Log.d("ActionRunner", "Waking ActionRunner!");
             synchronized (mHolder) {
@@ -128,14 +153,12 @@ public class ActionRunner extends Thread {
      * Adds the action to the queue, and moves it to the end of the queue if it has already
      * been placed in the queue.
      * @param a Action to add to the queue.
-     * @param pushToLastIfExists If true, the action will be removed and pushed to the end as long
-     *                           as the action is not first in line.
+     * @param noDuplicates If true, the action will not be added if it is already enqueued.
      */
-    public void addActionToQueue(Action a, boolean pushToLastIfExists) {
-        if (pushToLastIfExists && mActions.contains(a) && mActions.peekFirst() != a) {
-            mActions.remove(a);
+    public void addActionToQueue(Action a, boolean noDuplicates) {
+        if (!noDuplicates  || !mActions.contains(a)) {
+            addActionToQueue(a);
         }
-        addActionToQueue(a);
     }
 
 	/**
@@ -209,9 +232,11 @@ public class ActionRunner extends Thread {
             Log.d("ActionRunner", "ActionRunner is asleep - will auto terminate if not interrupted in " + mAutoTerminate + "ms");
             try { synchronized (mHolder) { mHolder.wait(mAutoTerminate); } } catch (InterruptedException ignored) { }
             if (System.currentTimeMillis() - beginSleep >= mAutoTerminate ) {
-                mDevice.disconnect();
-                mMode = ASLEEP;
-                Log.d("ActionRunner", "ActionRunner is auto-killing connection.");
+                if (mMode != ASLEEP) {
+                    mDevice.disconnect();
+                    mMode = ASLEEP;
+                    Log.d("ActionRunner", "ActionRunner is auto-killing connection to device " + mDevice.getAddress() + ".");
+                }
             } else {
                 mMode = AWAKE;
                 Log.d("ActionRunner", "ActionRunner received wake signal.");
@@ -233,11 +258,23 @@ public class ActionRunner extends Thread {
         mActions.clear();
     }
 
+    public void autoConnectHandler(AutoConnectHandler handler) {
+        mConnectHandler = handler;
+    }
+
+    public int getActionCount() {
+        return mActions.size();
+    }
+
     /**
      * Error handler
      */
     public interface ErrorHandler {
         boolean onError(Action.ActionError error);
+    }
+
+    public interface AutoConnectHandler {
+        void connect();
     }
 
 }
