@@ -29,16 +29,24 @@ import java.util.UUID;
 public class RegisterCharacteristic extends CharacteristicAction implements SmartDevice.GattListener, SmartDevice.UpdateListener {
 	private final Object mHolder = new Object();
 	private ActionError mError;
-	private boolean mEnable;
-	private CharacteristicNotifyListener mListener;
+	private byte[] mMode;
+	private CharacteristicNotifyEvent mListener;
+
+	public static final byte[] NOTIFICATION_ON = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE;
+	public static final byte[] INDICATION_ON = BluetoothGattDescriptor.ENABLE_INDICATION_VALUE;
+	public static final byte[] DISABLE = BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE;
 
 	protected static final UUID CHARACTERISTIC_UPDATE_NOTIFICATION_DESCRIPTOR_UUID =
 			UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
 
-	public RegisterCharacteristic(Characteristic characteristic, CharacteristicNotifyListener listener, boolean enable) {
+	public RegisterCharacteristic(Characteristic characteristic, boolean enable, CharacteristicNotifyEvent listener) {
+		this(characteristic, enable?NOTIFICATION_ON: DISABLE, listener);
+	}
+
+	public RegisterCharacteristic(Characteristic characteristic, byte[] mode, CharacteristicNotifyEvent listener) {
 		super(characteristic);
-		mEnable = enable;
 		mCharacteristic = characteristic;
+		mMode = mode;
 		mListener = listener;
 	}
 
@@ -51,16 +59,15 @@ public class RegisterCharacteristic extends CharacteristicAction implements Smar
 				.getDescriptor(CHARACTERISTIC_UPDATE_NOTIFICATION_DESCRIPTOR_UUID);
 		if (descriptor == null) return new RegisterForNotificationError();
 
-		mError = mGatt.setCharacteristicNotification(mCharacteristic.getCharacteristic(),mEnable) ?
+		mError = mGatt.setCharacteristicNotification(mCharacteristic.getCharacteristic(),mMode != DISABLE) ?
 				null : new RegisterForNotificationError();
 		if (mError != null) return mError;
 
 		smartDevice.addGattListener(this);
-		smartDevice.addOnUpdateListener(this);
-		descriptor.setValue(mEnable ? BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE :
-				BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE);
+		descriptor.setValue(mMode);
 		mGatt.writeDescriptor(descriptor);
-		try { synchronized (mHolder) { mHolder.wait(500); } } catch (InterruptedException e) { e.printStackTrace(); }
+		try { synchronized (mHolder) { mHolder.wait(3000); } } catch (InterruptedException e) { e.printStackTrace(); }
+		if (mMode == DISABLE) smartDevice.removeGattListener(this);
 
 		if (mError!=null) {
 			smartDevice.removeGattListener(this);
@@ -76,6 +83,10 @@ public class RegisterCharacteristic extends CharacteristicAction implements Smar
 		return mCharacteristic;
 	}
 
+	public interface CharacteristicNotifyEvent{
+		void onNotify(Characteristic characteristic);
+	}
+
 	@Override
 	public void onDescriptorWrite(BluetoothGattDescriptor descriptor, int status) {
 		if (status == BluetoothGatt.GATT_FAILURE) {
@@ -86,24 +97,13 @@ public class RegisterCharacteristic extends CharacteristicAction implements Smar
 		}
 	}
 
+	@Override public void onCharacteristicNotify(Characteristic characteristic) {
+		if (mListener != null && characteristic.getCharacteristicId().equals(mCharacteristic.getCharacteristicId())) mListener.onNotify(characteristic);
+	}
+
 	@Override
 	public String toString() {
 		return "Registering to Characteristic " + mCharacteristic.getCharacteristicLabel();
-	}
-
-	@Override public void onCharacteristicNotify(Characteristic characteristic) {
-		if (mListener!=null) mListener.onCharacteristicNotify(characteristic);
-	}
-
-	@Override
-	public void onDisconnect() {
-		mDevice.removeGattListener(this);
-		mDevice.removeOnUpdateListener(this);
-		mListener = null;
-	}
-
-	public interface CharacteristicNotifyListener {
-		void onCharacteristicNotify(Characteristic c);
 	}
 
 	/* unused */
@@ -111,5 +111,6 @@ public class RegisterCharacteristic extends CharacteristicAction implements Smar
 	@Override public void onCharacteristicRead(BluetoothGattCharacteristic characteristic, int status) {}
 	@Override public void onUpdate(Object device) {}
 	@Override public void onConnect() {}
+	@Override public void onDisconnect() {}
 }
 
