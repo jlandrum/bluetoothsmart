@@ -54,6 +54,7 @@ public class SetCharacteristic extends CharacteristicAction implements SmartDevi
 
 		smartDevice.addGattListener(this);
 		mGatt.writeCharacteristic(characteristic);
+		characteristic.setValue(mData);
 		try { synchronized (mHolder) { mHolder.wait(300); } } catch (InterruptedException e) {
 			mError = new CharacteristicWriteError();
 		}
