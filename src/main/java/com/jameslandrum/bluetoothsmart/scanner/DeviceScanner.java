@@ -144,7 +144,11 @@ public abstract class DeviceScanner {
 						Log.d("MESSAGE", "New known discovered: " + device.getAddress());
 						mDevices.put(device.getAddress(), target);
 						for (DeviceScannerListener listener : mListeners) {
-							listener.onDeviceDiscovered(target);
+							try {
+								listener.onDeviceDiscovered(target);
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
 						}
 						mStorage.writeDevice(target);
 						return;

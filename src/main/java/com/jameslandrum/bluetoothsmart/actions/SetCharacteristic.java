@@ -49,6 +49,11 @@ public class SetCharacteristic extends CharacteristicAction implements SmartDevi
 		mError = super.execute(smartDevice);
 		if (mError != null) return mError;
 
+		if (mCharacteristic.getCharacteristic() == null) {
+			mError = new Characteristic.CharacteristicNotFoundError();
+			return mError;
+		}
+
 		BluetoothGattCharacteristic characteristic = mCharacteristic.getCharacteristic();
 		characteristic.setValue(mData);
 
