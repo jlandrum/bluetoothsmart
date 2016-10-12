@@ -228,7 +228,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 			mGatt = null;
 		}
 		mConnecting = false;
-		Log.i("BluetoothGatt", "Device " + getName() + " is " + (mConnected?"":"not ") + "connected. (" + status + "," +newState + ")");
+		Log.i("BluetoothGatt", "Device " + getName() + "#" +  getAddress() + " is " + (mConnected?"":"not ") + "connected. (" + status + "," +newState + ")");
 	}
 
 	public void onConnect() {
