@@ -96,7 +96,7 @@ public class RegisterCharacteristic extends CharacteristicAction implements Smar
 	}
 
 	@Override
-	public void onDisconnect() {
+	public void onDisconnect(boolean wasConnected) {
 		mDevice.removeGattListener(this);
 		mDevice.removeOnUpdateListener(this);
 		mListener = null;

@@ -50,6 +50,7 @@ public class Connect extends Action implements SmartDevice.UpdateListener {
 		} catch (InterruptedException e) {
 			smartDevice.disconnect();
 		}
+		smartDevice.removeOnUpdateListener(this);
 
 		return mError;
 	}
@@ -71,12 +72,12 @@ public class Connect extends Action implements SmartDevice.UpdateListener {
 	}
 
 	@Override
-	public void onDisconnect() {}
-
-	private class FailedToConnectError implements ActionError {}
+	public void onDisconnect(boolean wasConnected) {}
 
 	@Override
 	public String toString() {
 		return "Connect";
 	}
+
+	private class FailedToConnectError implements ActionError {}
 }

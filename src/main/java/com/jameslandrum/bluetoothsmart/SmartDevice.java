@@ -202,6 +202,9 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		} catch (Exception ignored) { return false; }
 	}
 
+	public void dispose() {
+		mGatt = null;
+	}
 
 	public String getId() {
 		return mDevice.getAddress();
@@ -216,30 +219,32 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		super.onConnectionStateChange(gatt, status, newState);
 		mConnected = newState == BluetoothGatt.STATE_CONNECTED;
 		if (mConnected) {
-			if (mGatt.getServices().size() == 0) {
-				mGatt.discoverServices();
+			if (gatt.getServices().size() == 0) {
+				gatt.discoverServices();
 			} else {
 				onConnect();
 			}
 		}
 		if (newState == BluetoothGatt.STATE_DISCONNECTED) {
-			onDisconnect();
-			mGatt.close();
-			mGatt = null;
+			onDisconnect(!mConnecting);
+			gatt.close();
+			if (gatt == mGatt) mGatt = null;
 		}
 		mConnecting = false;
-		Log.i("BluetoothGatt", "Device " + getName() + " is " + (mConnected?"":"not ") + "connected. (" + status + "," +newState + ")");
+		Log.i("BluetoothGatt", "Device " + getName() +":" + this.toString() + " is " + (mConnected?"":"not ") + "connected. (" + status + "," +newState + ")");
 	}
 
 	public void onConnect() {
+		Log.i("BluetoothGatt", "Calling onConnect for " + mUpdateListeners.size() + " listeners.");
 		for (UpdateListener listener : mUpdateListeners) {
 			listener.onConnect();
 		}
 	}
 
-	public void onDisconnect() {
+	public void onDisconnect(boolean wasConnected) {
+		Log.i("BluetoothGatt", "Calling onDisconnect for " + mUpdateListeners.size() + " listeners.");
 		for (UpdateListener listener : mUpdateListeners) {
-			listener.onDisconnect();
+			listener.onDisconnect(wasConnected);
 		}
 	}
 
@@ -368,7 +373,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 	public interface UpdateListener<T> {
 		void onUpdate(T device);
 		void onConnect();
-		void onDisconnect();
+		void onDisconnect(boolean wasConnected);
 	}
 
 	public interface GattListener {
