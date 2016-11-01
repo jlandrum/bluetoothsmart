@@ -19,7 +19,6 @@ package com.jameslandrum.bluetoothsmart.actions;
 import android.support.annotation.Nullable;
 
 import com.jameslandrum.bluetoothsmart.SmartDevice;
-import com.jameslandrum.bluetoothsmart.scanner.DeviceScanner;
 
 /**
  * Disconnects from the existing connection explicitly.
@@ -61,22 +60,18 @@ public class Connect extends Action implements SmartDevice.UpdateListener {
 	}
 
 	@Override
-	public void onUpdate(Object device) {}
-
-	@Override
-	public void onConnect() {
-		mError = null;
-		synchronized (mHolder) {
-			mHolder.notify();
-		}
+	public String toString() {
+		return "Connect";
 	}
 
 	@Override
-	public void onDisconnect(boolean wasConnected) {}
-
-	@Override
-	public String toString() {
-		return "Connect";
+	public void onEvent(SmartDevice.UpdateEvent event, Object device) {
+		if (event == SmartDevice.UpdateEvent.CONNECT) {
+			mError = null;
+			synchronized (mHolder) {
+				mHolder.notify();
+			}
+		}
 	}
 
 	private class FailedToConnectError implements ActionError {}

@@ -96,10 +96,12 @@ public class RegisterCharacteristic extends CharacteristicAction implements Smar
 	}
 
 	@Override
-	public void onDisconnect(boolean wasConnected) {
-		mDevice.removeGattListener(this);
-		mDevice.removeOnUpdateListener(this);
-		mListener = null;
+	public void onEvent(SmartDevice.UpdateEvent event, Object device) {
+		if (event == SmartDevice.UpdateEvent.DISCONNECT) {
+			mDevice.removeGattListener(this);
+			mDevice.removeOnUpdateListener(this);
+			mListener = null;
+		}
 	}
 
 	public interface CharacteristicNotifyListener {
@@ -109,7 +111,5 @@ public class RegisterCharacteristic extends CharacteristicAction implements Smar
 	/* unused */
 	@Override public void onCharacteristicWrite(BluetoothGattCharacteristic characteristic, int status) {}
 	@Override public void onCharacteristicRead(BluetoothGattCharacteristic characteristic, int status) {}
-	@Override public void onUpdate(Object device) {}
-	@Override public void onConnect() {}
 }
 

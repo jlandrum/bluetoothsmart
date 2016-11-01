@@ -132,7 +132,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 
 	protected void postUpdate() {
 		for (UpdateListener l : mUpdateListeners) //noinspection unchecked
-			l.onUpdate(this);
+			l.onEvent(UpdateEvent.UPDATE, this);
 	}
 
 	public void newBeacon() {};
@@ -226,7 +226,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 			}
 		}
 		if (newState == BluetoothGatt.STATE_DISCONNECTED) {
-			onDisconnect(!mConnecting);
+			if (mConnecting) onConnectionFailed(); else onDisconnect();
 			gatt.close();
 			if (gatt == mGatt) mGatt = null;
 		}
@@ -234,17 +234,24 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		Log.i("BluetoothGatt", "Device " + getName() +":" + this.toString() + " is " + (mConnected?"":"not ") + "connected. (" + status + "," +newState + ")");
 	}
 
-	public void onConnect() {
-		Log.i("BluetoothGatt", "Calling onConnect for " + mUpdateListeners.size() + " listeners.");
+	@SuppressWarnings("unchecked")
+	private void onConnect() {
 		for (UpdateListener listener : mUpdateListeners) {
-			listener.onConnect();
+			listener.onEvent(UpdateEvent.CONNECT, this);
 		}
 	}
 
-	public void onDisconnect(boolean wasConnected) {
-		Log.i("BluetoothGatt", "Calling onDisconnect for " + mUpdateListeners.size() + " listeners.");
+	@SuppressWarnings("unchecked")
+	private void onDisconnect() {
 		for (UpdateListener listener : mUpdateListeners) {
-			listener.onDisconnect(wasConnected);
+			listener.onEvent(UpdateEvent.DISCONNECT, this);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private void onConnectionFailed() {
+		for (UpdateListener listener : mUpdateListeners) {
+			listener.onEvent(UpdateEvent.CONNECTION_FAILED, this);
 		}
 	}
 
@@ -369,11 +376,15 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		mProcessingEnabled = mProcessingEnabled;
 	}
 
+	public enum UpdateEvent {
+		UPDATE,
+		CONNECT,
+		DISCONNECT,
+		CONNECTION_FAILED
+	}
 
 	public interface UpdateListener<T> {
-		void onUpdate(T device);
-		void onConnect();
-		void onDisconnect(boolean wasConnected);
+		void onEvent(UpdateEvent event, T device);
 	}
 
 	public interface GattListener {
