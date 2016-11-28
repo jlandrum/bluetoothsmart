@@ -99,6 +99,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 					if (chars.getCharacteristicLabel().equals("Unknown")) {
 						chars.setCharacteristicLabel( f.getName() );
 					}
+					chars.setCharacteristicReference(charDef);
 					f.set(this,chars);
 				}
 			}
@@ -216,7 +217,10 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		super.onConnectionStateChange(gatt, status, newState);
 		mConnected = newState == BluetoothGatt.STATE_CONNECTED;
 		if (mConnected) {
-			if (mGatt.getServices().size() == 0) {
+			if (mDeclaration.bypassDiscovery() && !mServicesDiscovered) {
+				initCharacteristicsImplicit();
+			}
+			if (mGatt.getServices().size() == 0 && !mDeclaration.bypassDiscovery()) {
 				mGatt.discoverServices();
 			} else {
 				onConnect();
@@ -229,6 +233,26 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		}
 		mConnecting = false;
 		Log.i("BluetoothGatt", "Device " + getName() + "#" +  getAddress() + " is " + (mConnected?"":"not ") + "connected. (" + status + "," +newState + ")");
+	}
+
+	private void initCharacteristicsImplicit() {
+		for (CharacteristicPair p : mCharacteristics.keySet()) {
+			Characteristic characteristic = mCharacteristics.get(p);
+			CharacteristicRef characteristicRef = characteristic.getCharacteristicRef();
+
+			BluetoothGattService service = new BluetoothGattService(UUID.fromString(characteristicRef.service()), BluetoothGattService.SERVICE_TYPE_PRIMARY);
+			BluetoothGattCharacteristic c = new BluetoothGattCharacteristic(UUID.fromString(p.second), characteristicRef.properties(), characteristicRef.permissions());
+			try {
+				Method setService = BluetoothGattCharacteristic.class.getDeclaredMethod("setService", BluetoothGattService.class);
+				setService.setAccessible(true);
+				setService.invoke(c,service);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			characteristic.setCharacteristic(c);
+		}
+		mServicesDiscovered = true;
+
 	}
 
 	public void onConnect() {

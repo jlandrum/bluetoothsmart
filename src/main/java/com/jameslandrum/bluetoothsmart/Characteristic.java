@@ -20,6 +20,7 @@ import android.bluetooth.BluetoothGattCharacteristic;
 import android.util.Log;
 
 import com.jameslandrum.bluetoothsmart.actions.Action;
+import com.jameslandrum.bluetoothsmart.annotations.CharacteristicRef;
 
 import java.util.ArrayList;
 import java.util.UUID;
@@ -30,6 +31,7 @@ public class Characteristic {
 	protected UUID mServiceId;
 	private String mLabel;
 	private ArrayList<CharacteristicChangeListener> mListeners = new ArrayList<>();
+	private CharacteristicRef mCharRef;
 
 	protected Characteristic(String s, String c) {
 		mCharId = UUIDfromString(c);
@@ -101,6 +103,14 @@ public class Characteristic {
 		if (mCharacteristic != null) mCharacteristic.setWriteType(
 				respond ? BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
 						: BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE);
+	}
+
+	public void setCharacteristicReference(CharacteristicRef characteristicReference) {
+		this.mCharRef = characteristicReference;
+	}
+
+	public CharacteristicRef getCharacteristicRef() {
+		return mCharRef;
 	}
 
 	public static class CharacteristicNotFoundError implements Action.ActionError {

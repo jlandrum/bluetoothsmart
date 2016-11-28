@@ -25,4 +25,9 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 public @interface SmartDeviceDef {
 	long adFrequency() default 2000;
+	/**
+	 * Indicates that the device should handle characteristics implicitly.
+	 * This may not work with some devices.
+	 **/
+	boolean bypassDiscovery() default false;
 }

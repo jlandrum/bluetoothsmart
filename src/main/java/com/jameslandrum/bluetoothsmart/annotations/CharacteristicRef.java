@@ -16,6 +16,8 @@
 
 package com.jameslandrum.bluetoothsmart.annotations;
 
+import android.bluetooth.BluetoothGattCharacteristic;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -27,4 +29,6 @@ public @interface CharacteristicRef {
     String service();
     String id();
     String label() default "Unknown";
+    int permissions() default BluetoothGattCharacteristic.PERMISSION_READ | BluetoothGattCharacteristic.PERMISSION_WRITE;
+    int properties() default BluetoothGattCharacteristic.PROPERTY_READ | BluetoothGattCharacteristic.PROPERTY_WRITE;
 }
