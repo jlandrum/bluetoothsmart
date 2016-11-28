@@ -32,7 +32,7 @@ public class Disconnect extends Action {
 	@Override
 	public ActionError execute(SmartDevice smartDevice) {
 		super.execute(smartDevice);
-		smartDevice.getGatt().disconnect();
+		smartDevice.disconnect();
 		return null;
 	}
 

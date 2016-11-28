@@ -133,7 +133,7 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 
 	protected void postUpdate() {
 		for (UpdateListener l : mUpdateListeners) //noinspection unchecked
-			l.onUpdate(this);
+			l.onEvent(UpdateEvent.UPDATE, this);
 	}
 
 	public void newBeacon() {};
@@ -203,6 +203,9 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		} catch (Exception ignored) { return false; }
 	}
 
+	public void dispose() {
+		mGatt = null;
+	}
 
 	public String getId() {
 		return mDevice.getAddress();
@@ -227,9 +230,9 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 			}
 		}
 		if (newState == BluetoothGatt.STATE_DISCONNECTED) {
-			onDisconnect();
-			mGatt.close();
-			mGatt = null;
+			if (mConnecting) onConnectionFailed(); else onDisconnect();
+			gatt.close();
+			if (gatt == mGatt) mGatt = null;
 		}
 		mConnecting = false;
 		Log.i("BluetoothGatt", "Device " + getName() + "#" +  getAddress() + " is " + (mConnected?"":"not ") + "connected. (" + status + "," +newState + ")");
@@ -245,25 +248,33 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 			try {
 				Method setService = BluetoothGattCharacteristic.class.getDeclaredMethod("setService", BluetoothGattService.class);
 				setService.setAccessible(true);
-				setService.invoke(c,service);
+				setService.invoke(c, service);
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
 			characteristic.setCharacteristic(c);
 		}
 		mServicesDiscovered = true;
-
 	}
 
-	public void onConnect() {
+	@SuppressWarnings("unchecked")
+	private void onConnect() {
 		for (UpdateListener listener : mUpdateListeners) {
-			listener.onConnect();
+			listener.onEvent(UpdateEvent.CONNECT, this);
 		}
 	}
 
-	public void onDisconnect() {
+	@SuppressWarnings("unchecked")
+	private void onDisconnect() {
 		for (UpdateListener listener : mUpdateListeners) {
-			listener.onDisconnect();
+			listener.onEvent(UpdateEvent.DISCONNECT, this);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private void onConnectionFailed() {
+		for (UpdateListener listener : mUpdateListeners) {
+			listener.onEvent(UpdateEvent.CONNECTION_FAILED, this);
 		}
 	}
 
@@ -388,11 +399,15 @@ public class SmartDevice<T> extends BluetoothGattCallback {
 		mProcessingEnabled = mProcessingEnabled;
 	}
 
+	public enum UpdateEvent {
+		UPDATE,
+		CONNECT,
+		DISCONNECT,
+		CONNECTION_FAILED
+	}
 
 	public interface UpdateListener<T> {
-		void onUpdate(T device);
-		void onConnect();
-		void onDisconnect();
+		void onEvent(UpdateEvent event, T device);
 	}
 
 	public interface GattListener {
